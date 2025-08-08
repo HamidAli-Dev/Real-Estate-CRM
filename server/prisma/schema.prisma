@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workspace {
+  id               String   @id @default(uuid())
+  name             String
+  domain           String
+  subscriptionPlan String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  users         UserWorkspace[]
+  properties    Property[]
+  leads         Lead[]
+  deals         Deal[]
+  activities    Activity[]
+  files         File[]
+  categories    PropertyCategory[]
+  notifications Notification[]
+  settings      WorkspaceSettings?
+  subscription  Subscription?
+}
+
+model User {
+  id       String @id @default(uuid())
+  name     String
+  email    String @unique
+  password String
+
+  workspaces    UserWorkspace[]
+  properties    Property[]      @relation("ListedBy")
+  leads         Lead[]          @relation("AssignedTo")
+  activities    Activity[]
+  notifications Notification[]
+}
+
+model UserWorkspace {
+  id          String    @id @default(uuid())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String
+  role        Role
+
+  @@unique([userId, workspaceId])
+}
+
+enum Role {
+  Owner
+  Admin
+  Manager
+  Agent
+}
+
+model PropertyCategory {
+  id          String     @id @default(uuid())
+  category    Category
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id])
+  workspaceId String
+  properties  Property[]
+}
+
+enum Category {
+  Residential
+  Commercial
+  Land
+}
+
+model Property {
+  id          String           @id @default(uuid())
+  title       String
+  location    String
+  price       Float
+  status      PropertyStatus
+  purpose     PropertyPurpose
+  city        String
+  listedBy    User             @relation("ListedBy", fields: [listedById], references: [id])
+  listedById  String
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id])
+  workspaceId String
+  category    PropertyCategory @relation(fields: [categoryId], references: [id])
+  categoryId  String
+  files       File[]
+  leadLinks   LeadProperty[]
+}
+
+enum PropertyStatus {
+  Available
+  Sold
+  Under_Offer
+}
+
+enum PropertyPurpose {
+  forSale
+  forRent
+}
+
+model Lead {
+  id           String         @id @default(uuid())
+  name         String
+  contactInfo  String
+  stage        LeadStage
+  assignedTo   User           @relation("AssignedTo", fields: [assignedToId], references: [id])
+  assignedToId String
+  workspace    Workspace      @relation(fields: [workspaceId], references: [id])
+  workspaceId  String
+  deal         Deal?
+  activities   Activity[]
+  properties   LeadProperty[]
+}
+
+enum LeadStage {
+  New
+  InProgress
+  Deal_Won
+  Deal_Lost
+}
+
+model Deal {
+  id            String        @id @default(uuid())
+  pipelineStage PipelineStage
+  workspace     Workspace     @relation(fields: [workspaceId], references: [id])
+  workspaceId   String
+  lead          Lead          @relation(fields: [leadId], references: [id])
+  leadId        String        @unique
+}
+
+enum PipelineStage {
+  New
+  Contacted
+  Negotiation
+  Closed
+}
+
+model Activity {
+  id          String         @id @default(uuid())
+  type        ActivityType
+  scheduledAt DateTime
+  status      ActivityStatus
+  user        User           @relation(fields: [userId], references: [id])
+  userId      String
+  lead        Lead           @relation(fields: [leadId], references: [id])
+  leadId      String
+  workspace   Workspace      @relation(fields: [workspaceId], references: [id])
+  workspaceId String
+}
+
+enum ActivityType {
+  Call
+  Email
+  Meeting
+  Visit
+}
+
+enum ActivityStatus {
+  Pending
+  Completed
+}
+
+model File {
+  id          String     @id @default(uuid())
+  url         String
+  property    Property   @relation(fields: [propertyId], references: [id])
+  propertyId  String
+  Workspace   Workspace? @relation(fields: [workspaceId], references: [id])
+  workspaceId String?
+}
+
+model LeadProperty {
+  id         String   @id @default(uuid())
+  lead       Lead     @relation(fields: [leadId], references: [id])
+  leadId     String
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+
+  @@unique([leadId, propertyId])
+}
+
+model Notification {
+  id           String    @id @default(uuid())
+  notification String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId  String
+  user         User      @relation(fields: [userId], references: [id])
+  userId       String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model WorkspaceSettings {
+  id          String    @id @default(uuid())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Subscription {
+  id                   String    @id @default(uuid())
+  workspace            Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId          String    @unique
+  isActive             Boolean
+  plan                 PlanType
+  price                String
+  priceId              String
+  customerId           String
+  subscriptionId       String
+  currentPeriodEndDate DateTime
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+enum PlanType {
+  planId1
+  planId2
+  planId3
+}
