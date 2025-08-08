@@ -2,6 +2,11 @@ import "dotenv/config";
 import express, { Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+
+import { HTTPSTATUS } from "./config/http.config";
+import { APP_CONFIG } from "./config/app.config";
+import { errorHandler } from "./middlewares/errorHandler.middleware";
+
 const app = express();
 
 app.use(cors());
@@ -10,8 +15,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/", (req: Request, res: Response) => {
-  res.send("Hello, TypeScript Express!");
+  res.status(HTTPSTATUS.OK).json({
+    message: "Welcome to the Real Estate CRM API",
+    status: HTTPSTATUS.OK,
+  });
 });
-app.listen(process.env.PORT || 8000, () => {
-  console.log(`Server is running on port ${process.env.PORT || 8000}`);
+
+app.use(errorHandler);
+
+app.listen(APP_CONFIG.PORT, () => {
+  console.log(
+    `Server is running on port ${APP_CONFIG.PORT} in ${APP_CONFIG.NODE_ENV} mode`
+  );
 });
