@@ -6,10 +6,16 @@ import cors from "cors";
 import { HTTPSTATUS } from "./config/http.config";
 import { APP_CONFIG } from "./config/app.config";
 import { errorHandler } from "./middlewares/errorHandler.middleware";
+import authRoutes from "./routes/auth.routes";
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: APP_CONFIG.CORS_ORIGIN,
+    credentials: true,
+  })
+);
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -20,6 +26,8 @@ app.get("/", (req: Request, res: Response) => {
     status: HTTPSTATUS.OK,
   });
 });
+
+app.use("/api/v1/auth", authRoutes);
 
 app.use(errorHandler);
 

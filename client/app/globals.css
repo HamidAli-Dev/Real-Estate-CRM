@@ -120,3 +120,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+:root {
+  --cprimary-color: #3d99f5;
+}
+
+@theme inline {
+  --color-cprimary: var(--cprimary-color);
+}

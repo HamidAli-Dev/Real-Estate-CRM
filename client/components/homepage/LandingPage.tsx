@@ -1,8 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import Image from "next/image";
 import PricingCard from "./PricingCard";
 import FAQ from "./FAQ";
 import { subscriptionPlansList } from "@/constants/data";
@@ -26,17 +23,16 @@ export default function LandingPage() {
                   className="flex min-h-[480px] flex-col gap-6 bg-cover bg-center bg-no-repeat @[480px]:gap-8 @[480px]:rounded-lg items-center justify-center p-4"
                   style={{
                     backgroundImage:
-                      "linear-gradient(rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%), url('https://lh3.googleusercontent.com/aida-public/AB6AXuA6rro5GcpuIKH-RsBYOoAyfwfzcMEjvX1mo8Ao3CnvBjariWMB872_YCCv7mC3TDH9dP-wOflboxPc_hhf9ntuStaDQOdlk1G0PMdq4J4pEvoivot4jNEzl1niA-Wfe76UOm5cmQ3n11qCHCjkdh5w7tsuGHY3MpBhzDmW-Gm9e7IbqO7X0ie63S-E6V3iv-Zk2ZeNBULJCJbcX_oZCfqsfOvTS2nqrLi2WjRfTVXJN2HVX8rqt3AMw3FLlR2T2tDuhrIxu0zRBYMj')",
+                      "linear-gradient(rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.4) 100%), url(/images/hero.png)",
                   }}
                 >
                   <div className="flex flex-col gap-2 text-center">
                     <h1 className="text-white text-4xl font-black leading-tight tracking-[-0.033em] @[480px]:text-5xl @[480px]:font-black @[480px]:leading-tight @[480px]:tracking-[-0.033em]">
                       Streamline Your Real Estate Business
                     </h1>
-                    <h2 className="text-white text-sm font-normal leading-normal @[480px]:text-base @[480px]:font-normal @[480px]:leading-normal">
-                      PropertyPulse is the all-in-one CRM solution designed to
-                      help real estate professionals manage leads, transactions,
-                      and client relationships with ease.
+                    <h2 className="text-white text-lg font-normal leading-normal @[480px]:text-base @[480px]:font-normal @[480px]:leading-normal">
+                      The ultimate multi-tenant CRM for agencies, agents, and
+                      property managers.
                     </h2>
                   </div>
                   <CButton btnHref="/auth/register" btnTxt="Get Started" />
@@ -52,7 +48,7 @@ export default function LandingPage() {
                 Key Features
               </h1>
               <p className="text-[#0d141c] text-base font-normal leading-normal max-w-[720px]">
-                PropertyPulse offers a comprehensive suite of tools to help you
+                EstateElite offers a comprehensive suite of tools to help you
                 stay organized and efficient.
               </p>
             </div>
@@ -61,8 +57,7 @@ export default function LandingPage() {
                 <div
                   className="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg"
                   style={{
-                    backgroundImage:
-                      "url(https://lh3.googleusercontent.com/aida-public/AB6AXuDTiMlyNHEvZYwkqyAB-LaX2hSCFMmDwzjyntwxFqkrmORZlRNBM09DL0Y7RqVW_idR_LuvXhQmeQiq75IVjOPRhDa4Ktd7vFBwwX7knpINOhhy2YkRgYht6bjWZZDBjyOD4zJmy7qFdk1kxlgZRtN2RDUHeYaZCeVMAztF3x4kX03-so7vHgFf6jgV_hi_xK60v877qEqtHN1o53vFKu_HGMQa7AYkoiw1NKHzWD_Ox1aYCpQ6xIBkYDvMcCo9p8WElZ8rz-jrD1DS)",
+                    backgroundImage: "url(/images/feature-1.png)",
                   }}
                 ></div>
                 <div>
@@ -79,8 +74,7 @@ export default function LandingPage() {
                 <div
                   className="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg"
                   style={{
-                    backgroundImage:
-                      "url(https://lh3.googleusercontent.com/aida-public/AB6AXuAhaypIG1dEAeEdREClY_Yq5rpaOFL6SVI-xE-n5w9gYrjG5hVsZFrQwD_TVc3JHIVGfUwFJj0kRn-AeMb6GNSjYRERPXWvA4lPFrY04CEspIizzeNHQR_khOZXy83Y4VEf1ovKJ_eW6QYrairXLDo24T4aT-jGxEGiFQ2KARILagx62298sEPd2UA7ooqcS1E8JsJG2k3hY8O9xaMyFFp-Xam18BmsbzSJlpEeozpXF8nO8iiecyFSwh5lydMMeCND8PBi9e2rht9i)",
+                    backgroundImage: "url(/images/feature-2.png)",
                   }}
                 ></div>
                 <div>
@@ -97,8 +91,7 @@ export default function LandingPage() {
                 <div
                   className="w-full bg-center bg-no-repeat aspect-video bg-cover rounded-lg"
                   style={{
-                    backgroundImage:
-                      "url(https://lh3.googleusercontent.com/aida-public/AB6AXuDP0fJpQnAaz5YnvFkTn3sz4JP-wDjGKtAhx5f3pP0DUKQKsia0auEqzMLekC8tc4xEm4HW_yUOeey5beAexUxtT9mItyNMJKpqBiHIgiTsKyZJy2lbe8IW0txKTVaJSAa_ZobTibr33EtPesflDAm2ivfbTrrXwNCWbeFYoX22JiPKPvx91TAmPh6eF6-_xMahyzSk-rRw94CMKDl0XrmRyAWA8RB4Z68lAHkM5IQrFe0mvEg3a9PAj70sbyvTrucLE1uIN9izcOLJ)",
+                    backgroundImage: "url(/images/feature-3.png)",
                   }}
                 ></div>
                 <div>
@@ -131,8 +124,8 @@ export default function LandingPage() {
                   ></div>
                   <div>
                     <p className="text-[#0d141c] text-base font-medium leading-normal">
-                      PropertyPulse has transformed the way I manage my
-                      business. I can now handle more clients with less effort.
+                      EstateElite has transformed the way I manage my business.
+                      I can now handle more clients with less effort.
                     </p>
                     <p className="text-[#49739c] text-sm font-normal leading-normal">
                       Sophia Carter, Real Estate Agent
@@ -258,7 +251,7 @@ export default function LandingPage() {
               Contact Information
             </h3>
             <p className="text-[#0d141c] text-base font-normal leading-normal pb-3 pt-1 px-4">
-              Email: support@propertypulse.com
+              Email: support@estateelite.com
             </p>
             <p className="text-[#0d141c] text-base font-normal leading-normal pb-3 pt-1 px-4">
               Phone: (555) 123-4567

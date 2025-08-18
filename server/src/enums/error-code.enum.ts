@@ -22,3 +22,5 @@ const enum ErrorCode {
 }
 
 export { ErrorCode };
+
+export type ErrorCodeEnum = (typeof ErrorCode)[keyof typeof ErrorCode];

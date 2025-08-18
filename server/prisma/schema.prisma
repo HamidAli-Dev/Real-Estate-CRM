@@ -10,8 +10,8 @@ datasource db {
 model Workspace {
   id               String   @id @default(uuid())
   name             String
-  domain           String
-  subscriptionPlan String
+  domain           String?
+  subscriptionPlan String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -38,6 +38,7 @@ model User {
   leads         Lead[]          @relation("AssignedTo")
   activities    Activity[]
   notifications Notification[]
+  RefreshToken  RefreshToken[]
 }
 
 model UserWorkspace {
@@ -194,30 +195,56 @@ model Notification {
 }
 
 model WorkspaceSettings {
-  id          String    @id @default(uuid())
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  workspaceId String    @unique
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                  String    @id @default(uuid())
+  workspace           Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId         String    @unique
+  onboardingCompleted Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 }
 
 model Subscription {
-  id                   String    @id @default(uuid())
-  workspace            Workspace @relation(fields: [workspaceId], references: [id])
-  workspaceId          String    @unique
-  isActive             Boolean
-  plan                 PlanType
-  price                String
-  priceId              String
-  customerId           String
-  subscriptionId       String
-  currentPeriodEndDate DateTime
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  id                   String     @id @default(cuid())
+  workspaceId          String?    @unique
+  workspace            Workspace? @relation(fields: [workspaceId], references: [id])
+  planId               String?
+  plan                 Plan?      @relation(fields: [planId], references: [id])
+  isActive             Boolean    @default(true)
+  customerId           String?
+  subscriptionId       String?
+  currentPeriodEndDate DateTime?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
 }
 
 enum PlanType {
-  planId1
-  planId2
-  planId3
+  Basic
+  Standard
+  Pro
+}
+
+enum PlanDuration {
+  monthly
+  yearly
+}
+
+model Plan {
+  id            String         @id @default(cuid())
+  name          String
+  price         Float
+  duration      PlanDuration
+  features      String[] // array of feature names
+  stripePriceId String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }

@@ -1,4 +1,5 @@
 import { AlignRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 import {
@@ -13,8 +14,14 @@ import CButton from "@/components/global/CButton";
 
 const Header = () => {
   return (
-    <header className="w-full px-6 py-4 flex items-center justify-between border-b">
-      <div className="font-bold text-lg">PropertyPulse</div>
+    <header className="w-full max-w-7xl mx-auto px-6 py-4 flex items-center justify-between border-b">
+      <Image
+        src={"/images/logo-2.png"}
+        alt="logo"
+        width={100}
+        height={100}
+        className="mb-3"
+      />
       <nav className="hidden md:flex items-center space-x-6">
         <Link href="#features">Features</Link>
         <Link href="#pricing">Pricing</Link>
