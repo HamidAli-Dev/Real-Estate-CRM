@@ -121,11 +121,19 @@
   }
 }
 
-
 :root {
   --cprimary-color: #3d99f5;
 }
 
 @theme inline {
   --color-cprimary: var(--cprimary-color);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none; /* For Chrome, Safari, and Opera */
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;  /* For IE and Edge */
+    scrollbar-width: none;  /* For Firefox */
 }

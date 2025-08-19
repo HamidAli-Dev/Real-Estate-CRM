@@ -7,6 +7,7 @@ import { HTTPSTATUS } from "./config/http.config";
 import { APP_CONFIG } from "./config/app.config";
 import { errorHandler } from "./middlewares/errorHandler.middleware";
 import authRoutes from "./routes/auth.routes";
+import userRoutes from "./routes/user.routes";
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/user", userRoutes);
 
 app.use(errorHandler);
 

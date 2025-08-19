@@ -32,7 +32,7 @@ import FormHeading from "./FormHeading";
 const RegisterFormSchema = z.object({
   name: z
     .string()
-    .min(2, { error: "add minimun 3 characters" })
+    .min(3, { error: "add minimun 3 characters" })
     .max(50, { error: "characters should not more then 50" }),
   email: z.email("Invalid email address").toLowerCase(),
   password: z.string().min(6, "Password must be at least 6 characters long"),
@@ -63,7 +63,7 @@ const RegisterForm = () => {
           description: "Owner registered successfully",
         });
 
-        router.push("/auth/login");
+        setTimeout(() => router.push("/auth/login"), 1000);
       },
       onError: (err) => {
         toast.error("Error", {
@@ -101,70 +101,62 @@ const RegisterForm = () => {
               onSubmit={form.handleSubmit(onSubmit)}
               className="grid gap-y-4"
             >
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="text"
-                        {...field}
-                        placeholder="jan dow"
-                        disabled={isPending}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <fieldset disabled={isPending} className="flex flex-col gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input type="text" {...field} placeholder="jan dow" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="abc@gmail.com"
-                        disabled={isPending}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="abc@gmail.com" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        {...field}
-                        placeholder="*********"
-                        disabled={isPending}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          {...field}
+                          placeholder="*********"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <Button
-                type="submit"
-                variant={"customPrimary"}
-                disabled={isPending}
-              >
-                {isPending && <Loader className="animate-spin" />}
-                Register
-              </Button>
+                <Button
+                  type="submit"
+                  variant={"customPrimary"}
+                  disabled={isPending}
+                >
+                  {isPending && <Loader className="animate-spin" />}
+                  Register
+                </Button>
+              </fieldset>
             </form>
 
             <div className="mt-3">

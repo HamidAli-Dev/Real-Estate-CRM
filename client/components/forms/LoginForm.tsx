@@ -5,10 +5,10 @@ import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +36,11 @@ const LoginFormSchema = z.object({
 
 const LoginForm = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
+
+  // Get the redirect URL from query parameters
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
 
   const { mutate, isPending } = useMutation({
     mutationFn: loginMutationFn,
@@ -49,19 +54,22 @@ const LoginForm = () => {
     },
   });
 
-  function onSubmit(values: z.infer<typeof LoginFormSchema>) {
+  async function onSubmit(values: z.infer<typeof LoginFormSchema>) {
     if (isPending) return;
 
     mutate(values, {
-      onSuccess: () => {
+      onSuccess: async () => {
         toast.success("Success", {
           description: "Login successful",
         });
-        router.push("/dashboard");
+        await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+
+        // Redirect to the intended destination or dashboard
+        router.push(redirectTo);
       },
       onError: (err) => {
         toast.error("Error", {
-          description: err.message,
+          description: err.message || "Something went wrong",
         });
       },
     });

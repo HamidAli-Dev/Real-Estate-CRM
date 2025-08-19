@@ -1,7 +1,13 @@
-import React from "react";
+import Overview from "../_components/Overview";
+import TopBar from "../_components/TopBar";
 
 const DashboardPage = () => {
-  return <div>DashboardPage</div>;
+  return (
+    <div>
+      <TopBar />
+      <Overview />
+    </div>
+  );
 };
 
 export default DashboardPage;
