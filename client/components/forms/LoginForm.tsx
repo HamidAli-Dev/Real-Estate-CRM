@@ -39,9 +39,6 @@ const LoginForm = () => {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
-  // Get the redirect URL from query parameters
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
-
   const { mutate, isPending } = useMutation({
     mutationFn: loginMutationFn,
   });
@@ -64,8 +61,7 @@ const LoginForm = () => {
         });
         await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
 
-        // Redirect to the intended destination or dashboard
-        router.push(redirectTo);
+        router.push("/dashboard");
       },
       onError: (err) => {
         toast.error("Error", {

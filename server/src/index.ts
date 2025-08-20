@@ -8,6 +8,7 @@ import { APP_CONFIG } from "./config/app.config";
 import { errorHandler } from "./middlewares/errorHandler.middleware";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
+import workspaceRoutes from "./routes/workspace.routes";
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.get("/", (req: Request, res: Response) => {
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/workspace", workspaceRoutes);
 
 app.use(errorHandler);
 

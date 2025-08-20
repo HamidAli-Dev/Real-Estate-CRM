@@ -34,4 +34,3 @@ export const useRefreshToken = () => {
     error: mutation.error,
   };
 };
-

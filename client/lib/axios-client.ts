@@ -1,5 +1,4 @@
 import axios from "axios";
-import Cookies from "js-cookie";
 
 import { CustomError } from "@/types/custom-error.type";
 import { refreshTokenFn } from "./api";
@@ -31,6 +30,42 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
+// Safe cookie functions that check if we're in the browser
+const getCookie = (name: string): string | undefined => {
+  if (typeof window === "undefined") return undefined;
+
+  try {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(";").shift();
+  } catch (error) {
+    console.error("Error reading cookie:", error);
+  }
+  return undefined;
+};
+
+const setCookie = (name: string, value: string, options: any = {}) => {
+  if (typeof window === "undefined") return;
+
+  try {
+    document.cookie = `${name}=${value}; path=/; ${
+      options.secure ? "secure;" : ""
+    } ${options.sameSite ? `samesite=${options.sameSite};` : ""}`;
+  } catch (error) {
+    console.error("Error setting cookie:", error);
+  }
+};
+
+const removeCookie = (name: string) => {
+  if (typeof window === "undefined") return;
+
+  try {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+  } catch (error) {
+    console.error("Error removing cookie:", error);
+  }
+};
+
 API.interceptors.response.use(
   (res) => {
     return res.data;
@@ -41,30 +76,47 @@ API.interceptors.response.use(
     const status = response?.status;
     const originalRequest = err.config;
 
-    if (data === "Unauthorized" && status === 401) {
+    // Check for 401 status and either "Unauthorized" message or "ACCESS_UNAUTHORIZED" error code
+    if (
+      status === 401 &&
+      (data === "Unauthorized" || data?.errorCode === "ACCESS_UNAUTHORIZED")
+    ) {
+      console.log("🔐 Token expired, attempting refresh...", {
+        status,
+        data,
+        originalRequest: originalRequest.url,
+      });
+
       // If we're already refreshing, add to queue
       if (isRefreshing) {
+        console.log("⏳ Already refreshing, adding to queue...");
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
+            console.log("✅ Got token from queue, retrying request...");
             originalRequest.headers.Authorization = `Bearer ${token}`;
             return API(originalRequest);
           })
           .catch((error) => {
+            console.log("❌ Queue promise rejected:", error);
             return Promise.reject(error);
           });
       }
 
       // Start refresh process
+      console.log("🔄 Starting token refresh...");
       isRefreshing = true;
       originalRequest._retry = true;
 
       try {
         const { accessToken } = await refreshTokenFn();
+        console.log(
+          "✅ Token refresh successful, updating cookies and retrying..."
+        );
 
         // Update the access token in cookies
-        Cookies.set("accessToken", accessToken, {
+        setCookie("accessToken", accessToken, {
           secure: process.env.NODE_ENV === "production",
           sameSite: "lax",
         });
@@ -78,10 +130,11 @@ API.interceptors.response.use(
         // Retry the original request
         return API(originalRequest);
       } catch (refreshError) {
+        console.log("❌ Token refresh failed:", refreshError);
         // Refresh failed, clear tokens and redirect to login
         processQueue(refreshError, null);
-        Cookies.remove("accessToken");
-        Cookies.remove("refreshToken");
+        removeCookie("accessToken");
+        removeCookie("refreshToken");
 
         // Only redirect if we're in the browser
         if (typeof window !== "undefined") {
@@ -106,7 +159,7 @@ API.interceptors.response.use(
 );
 
 API.interceptors.request.use((config) => {
-  const token = Cookies.get("accessToken");
+  const token = getCookie("accessToken");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
