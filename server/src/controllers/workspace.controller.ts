@@ -6,21 +6,25 @@ import {
   getUserWorkspacesService,
   editWorkspaceService,
   getWorkspaceByIdService,
+  getWorkspaceUsersService,
+  inviteUserToWorkspaceService,
+  updateUserRoleService,
+  removeUserFromWorkspaceService,
 } from "../services/workspace.service";
 import { BadRequestException } from "../utils/AppError";
 
 export const createWorkspaceController = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user.id;
-    const { name, domain } = req.body;
+    const { name } = req.body;
 
     // Validate input data
-    if (!name || !domain) {
-      throw new BadRequestException("Name and domain are required");
+    if (!name) {
+      throw new BadRequestException("Name is required");
     }
 
     // Create workspace
-    const workspace = await createWorkspaceService({ name, domain }, userId);
+    const workspace = await createWorkspaceService({ name }, userId);
 
     return res.status(HTTPSTATUS.CREATED).json({
       message: "Workspace created successfully",
@@ -28,7 +32,6 @@ export const createWorkspaceController = asyncHandler(
         workspace: {
           id: workspace.id,
           name: workspace.name,
-          domain: workspace.domain,
           createdAt: workspace.createdAt,
         },
         userRole: "Owner",
@@ -54,7 +57,7 @@ export const editWorkspaceController = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user.id;
     const workspaceId = req.params.workspaceId;
-    const { name, domain } = req.body;
+    const { name } = req.body;
 
     // Validate input data
     if (!name) {
@@ -64,7 +67,6 @@ export const editWorkspaceController = asyncHandler(
     // Edit workspace
     const workspace = await editWorkspaceService(workspaceId, userId, {
       name,
-      domain,
     });
 
     return res.status(HTTPSTATUS.OK).json({
@@ -73,7 +75,6 @@ export const editWorkspaceController = asyncHandler(
         workspace: {
           id: workspace.id,
           name: workspace.name,
-          domain: workspace.domain,
           updatedAt: workspace.updatedAt,
         },
       },
@@ -91,6 +92,80 @@ export const getWorkspaceByIdController = asyncHandler(
     return res.status(HTTPSTATUS.OK).json({
       message: "Workspace fetched successfully",
       data: userWorkspace,
+    });
+  }
+);
+
+export const getWorkspaceUsersController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user.id;
+    const workspaceId = req.params.workspaceId;
+
+    const workspaceUsers = await getWorkspaceUsersService(workspaceId, userId);
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: "Workspace users fetched successfully",
+      data: workspaceUsers,
+    });
+  }
+);
+
+export const inviteUserController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user.id;
+    const workspaceId = req.params.workspaceId;
+    const { name, email, role, permissions } = req.body;
+
+    const result = await inviteUserToWorkspaceService(workspaceId, userId, {
+      name,
+      email,
+      role,
+      permissions,
+    });
+
+    return res.status(HTTPSTATUS.CREATED).json({
+      message: "User invited to workspace successfully",
+      data: result,
+    });
+  }
+);
+
+export const updateUserRoleController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user.id;
+    const workspaceId = req.params.workspaceId;
+    const targetUserId = req.params.userId;
+    const { role, permissions } = req.body;
+
+    const result = await updateUserRoleService(
+      workspaceId,
+      targetUserId,
+      userId,
+      { role, permissions }
+    );
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: "User role updated successfully",
+      data: result,
+    });
+  }
+);
+
+export const removeUserController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user.id;
+    const workspaceId = req.params.workspaceId;
+    const targetUserId = req.params.userId;
+
+    const result = await removeUserFromWorkspaceService(
+      workspaceId,
+      targetUserId,
+      userId
+    );
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: "User removed from workspace successfully",
+      data: result,
     });
   }
 );

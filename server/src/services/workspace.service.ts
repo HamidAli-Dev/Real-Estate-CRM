@@ -2,6 +2,8 @@ import { db } from "../utils/db";
 import {
   CreateWorkspaceInput,
   EditWorkspaceInput,
+  InviteUserInput,
+  UpdateUserRoleInput,
 } from "../validation/workspace.validation";
 import { BadRequestException } from "../utils/AppError";
 
@@ -9,32 +11,18 @@ export const createWorkspaceService = async (
   data: CreateWorkspaceInput,
   userId: string
 ) => {
-  // Check if domain already exists
-  const existingWorkspace = await db.workspace.findFirst({
-    where: {
-      domain: data.domain,
-    },
-  });
-
-  if (existingWorkspace) {
-    throw new BadRequestException(
-      `Domain '${data.domain}.eliteestate.com' is already taken. Please choose a different domain.`
-    );
-  }
-
   // Create workspace and user-workspace relationship in a transaction
   const result = await db.$transaction(async (tx) => {
     // Create the workspace
     const workspace = await tx.workspace.create({
       data: {
         name: data.name,
-        domain: data.domain,
         subscriptionPlan: null, // Will be set when subscription is created
       },
     });
 
     // Create user-workspace relationship with Owner role
-    await tx.userWorkspace.create({
+    const userWorkspace = await tx.userWorkspace.create({
       data: {
         userId,
         workspaceId: workspace.id,
@@ -50,10 +38,10 @@ export const createWorkspaceService = async (
       },
     });
 
-    return workspace;
+    return { workspace, userWorkspace };
   });
 
-  return result;
+  return result.workspace;
 };
 
 export const getUserWorkspacesService = async (userId: string) => {
@@ -67,6 +55,7 @@ export const getUserWorkspacesService = async (userId: string) => {
           settings: true,
         },
       },
+      permissions: true,
     },
   });
 
@@ -98,37 +87,11 @@ export const editWorkspaceService = async (
     throw new BadRequestException("Only workspace owners can edit workspaces");
   }
 
-  const workspace = userWorkspace.workspace;
-
-  // If trying to edit domain, check if current domain is null
-  if (data.domain && workspace.domain) {
-    throw new BadRequestException(
-      "Domain cannot be edited once it's set. Please contact support if you need to change the domain."
-    );
-  }
-
-  // If setting a new domain, check if it's already taken
-  if (data.domain && !workspace.domain) {
-    const existingWorkspace = await db.workspace.findFirst({
-      where: {
-        domain: data.domain,
-        id: { not: workspaceId }, // Exclude current workspace
-      },
-    });
-
-    if (existingWorkspace) {
-      throw new BadRequestException(
-        `Domain '${data.domain}.eliteestate.com' is already taken. Please choose a different domain.`
-      );
-    }
-  }
-
   // Update workspace
   const updatedWorkspace = await db.workspace.update({
     where: { id: workspaceId },
     data: {
       name: data.name,
-      ...(data.domain && !workspace.domain ? { domain: data.domain } : {}),
     },
   });
 
@@ -150,6 +113,7 @@ export const getWorkspaceByIdService = async (
           settings: true,
         },
       },
+      permissions: true,
     },
   });
 
@@ -158,4 +122,221 @@ export const getWorkspaceByIdService = async (
   }
 
   return userWorkspace;
+};
+
+export const getWorkspaceUsersService = async (
+  workspaceId: string,
+  userId: string
+) => {
+  // Check if user has access to this workspace
+  const userWorkspace = await db.userWorkspace.findFirst({
+    where: {
+      workspaceId,
+      userId,
+    },
+  });
+
+  if (!userWorkspace) {
+    throw new BadRequestException("You don't have access to this workspace");
+  }
+
+  // Get all users in the workspace with their roles and permissions
+  const workspaceUsers = await db.userWorkspace.findMany({
+    where: {
+      workspaceId,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      permissions: true,
+    },
+  });
+
+  return workspaceUsers;
+};
+
+export const inviteUserToWorkspaceService = async (
+  workspaceId: string,
+  userId: string,
+  data: InviteUserInput
+) => {
+  // Check if user has access to this workspace
+  const userWorkspace = await db.userWorkspace.findFirst({
+    where: {
+      workspaceId,
+      userId,
+    },
+  });
+
+  if (!userWorkspace) {
+    throw new BadRequestException("You don't have access to this workspace");
+  }
+
+  // Only Owners and Admins can invite users
+  if (!["Owner", "Admin"].includes(userWorkspace.role)) {
+    throw new BadRequestException("You don't have permission to invite users");
+  }
+
+  // Check if user already exists
+  let user = await db.user.findUnique({
+    where: { email: data.email },
+  });
+
+  if (!user) {
+    // Create new user with temporary password
+    const tempPassword = Math.random().toString(36).slice(-8);
+    user = await db.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        password: tempPassword, // In production, this should be hashed
+      },
+    });
+  }
+
+  // Check if user is already in this workspace
+  const existingUserWorkspace = await db.userWorkspace.findFirst({
+    where: {
+      workspaceId,
+      userId: user.id,
+    },
+  });
+
+  if (existingUserWorkspace) {
+    throw new BadRequestException("User is already a member of this workspace");
+  }
+
+  // Add user to workspace with role and permissions
+  const newUserWorkspace = await db.userWorkspace.create({
+    data: {
+      userId: user.id,
+      workspaceId,
+      role: data.role,
+    },
+  });
+
+  // Create permissions for the user
+  const permissions = data.permissions.map((permission) => ({
+    userWorkspaceId: newUserWorkspace.id,
+    permission: permission as any, // Type assertion for enum
+  }));
+
+  await db.rolePermission.createMany({
+    data: permissions,
+  });
+
+  return { user, role: data.role, permissions: data.permissions };
+};
+
+export const updateUserRoleService = async (
+  workspaceId: string,
+  targetUserId: string,
+  userId: string,
+  data: UpdateUserRoleInput
+) => {
+  // Check if user has access to this workspace
+  const userWorkspace = await db.userWorkspace.findFirst({
+    where: {
+      workspaceId,
+      userId,
+    },
+  });
+
+  if (!userWorkspace) {
+    throw new BadRequestException("You don't have access to this workspace");
+  }
+
+  // Only Owners and Admins can update user roles
+  if (!["Owner", "Admin"].includes(userWorkspace.role)) {
+    throw new BadRequestException(
+      "You don't have permission to update user roles"
+    );
+  }
+
+  // Check if target user exists in workspace
+  const targetUserWorkspace = await db.userWorkspace.findFirst({
+    where: {
+      workspaceId,
+      userId: targetUserId,
+    },
+  });
+
+  if (!targetUserWorkspace) {
+    throw new BadRequestException("User not found in workspace");
+  }
+
+  // Update user role and permissions
+  await db.userWorkspace.update({
+    where: { id: targetUserWorkspace.id },
+    data: { role: data.role },
+  });
+
+  // Remove existing permissions
+  await db.rolePermission.deleteMany({
+    where: { userWorkspaceId: targetUserWorkspace.id },
+  });
+
+  // Create new permissions
+  const permissions = data.permissions.map((permission) => ({
+    userWorkspaceId: targetUserWorkspace.id,
+    permission: permission as any, // Type assertion for enum
+  }));
+
+  await db.rolePermission.createMany({
+    data: permissions,
+  });
+
+  return { message: "User role updated successfully" };
+};
+
+export const removeUserFromWorkspaceService = async (
+  workspaceId: string,
+  targetUserId: string,
+  userId: string
+) => {
+  // Check if user has access to this workspace
+  const userWorkspace = await db.userWorkspace.findFirst({
+    where: {
+      workspaceId,
+      userId,
+    },
+  });
+
+  if (!userWorkspace) {
+    throw new BadRequestException("You don't have access to this workspace");
+  }
+
+  // Only Owners and Admins can remove users
+  if (!["Owner", "Admin"].includes(userWorkspace.role)) {
+    throw new BadRequestException("You don't have permission to remove users");
+  }
+
+  // Check if target user exists in workspace
+  const targetUserWorkspace = await db.userWorkspace.findFirst({
+    where: {
+      workspaceId,
+      userId: targetUserId,
+    },
+  });
+
+  if (!targetUserWorkspace) {
+    throw new BadRequestException("User not found in workspace");
+  }
+
+  // Prevent removing the owner
+  if (targetUserWorkspace.role === "Owner") {
+    throw new BadRequestException("Cannot remove workspace owner");
+  }
+
+  // Remove user from workspace (this will cascade delete permissions)
+  await db.userWorkspace.delete({
+    where: { id: targetUserWorkspace.id },
+  });
+
+  return { message: "User removed from workspace successfully" };
 };

@@ -5,7 +5,9 @@ const DashboardPage = () => {
   return (
     <div>
       <TopBar />
-      <Overview />
+      <div className="p-6">
+        <Overview />
+      </div>
     </div>
   );
 };

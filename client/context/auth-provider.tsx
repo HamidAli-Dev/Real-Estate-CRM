@@ -20,10 +20,11 @@ interface AuthContextProps {
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
   const [user, setUser] = useState<userType | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const queryClient = useQueryClient();
-  const router = useRouter();
   const { getCookie, setCookie, removeCookie, isClient } = useCookies();
 
   // Initialize auth state after hydration
@@ -78,14 +79,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [isInitialized, error, user]);
 
-  // Handle initial loading state
-  useEffect(() => {
-    if (isInitialized && isLoading && !user) {
-      // If loading and no user, keep loading state
-      // This prevents hydration mismatches
-    }
-  }, [isInitialized, isLoading, user]);
-
   // Handle initial data state
   useEffect(() => {
     if (isInitialized && data && !user) {
@@ -95,24 +88,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
   }, [isInitialized, data, user]);
-
-  // Handle initial isSuccess state
-  useEffect(() => {
-    if (isInitialized && isSuccess && !user) {
-      // If success and no user, check if we should set user
-      if (data?.user) {
-        setUser(data.user);
-      }
-    }
-  }, [isInitialized, isSuccess, data, user]);
-
-  // Handle initial error state
-  useEffect(() => {
-    if (isInitialized && error && !user) {
-      // If error and no user, set user to null
-      setUser(null);
-    }
-  }, [isInitialized, error, user]);
 
   // Manual refresh function
   const refreshAuth = async () => {
@@ -154,7 +129,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("No user data found in response");
       setUser(null);
     }
-  }, [data, error, isSuccess, isInitialized]);
+  }, [data, error, isSuccess, isInitialized, user]);
 
   // Logout function
   const logout = async () => {

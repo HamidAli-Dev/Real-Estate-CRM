@@ -1,6 +1,8 @@
-import Link from "next/link";
-import Image from "next/image";
+"use client";
 
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -25,71 +27,56 @@ import {
 } from "lucide-react";
 
 const DashboardSidebar = () => {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const workspaceId = searchParams.get("workspaceId");
+
   const menuData = [
     {
-      label: "Dashboard",
-      menuItems: [
-        {
-          title: "Overview",
-          icon: <LayoutDashboard size={15} />,
-          href: "/dashboard",
-        },
-      ],
+      title: "Dashboard",
+      href: `/dashboard${workspaceId ? `?workspaceId=${workspaceId}` : ""}`,
+      path: "/dashboard",
+      icon: LayoutDashboard,
     },
     {
-      label: "CRM",
-      menuItems: [
-        {
-          title: "Properties",
-          icon: <House size={15} />,
-          href: "/dashboard/properties",
-        },
-        {
-          title: "Leads Pipeline",
-          icon: <User size={15} />,
-          href: "/dashboard/leads",
-        },
-        {
-          title: "Task & Activities",
-          icon: <ClipboardCheck size={15} />,
-          href: "/dashboard/leads",
-        },
-      ],
+      title: "Properties",
+      href: `/dashboard/properties${
+        workspaceId ? `?workspaceId=${workspaceId}` : ""
+      }`,
+      path: "/dashboard/properties",
+      icon: House,
     },
     {
-      label: "Management",
-      menuItems: [
-        {
-          title: "User Management",
-          icon: <UsersRound size={15} />,
-          href: "/dashboard/users",
-        },
-        {
-          title: "Notifications",
-          icon: <Bell size={15} />,
-          href: "/dashboard/notifications",
-        },
-      ],
+      title: "User Management",
+      href: `/dashboard/user-management${
+        workspaceId ? `?workspaceId=${workspaceId}` : ""
+      }`,
+      path: "/dashboard/user-management",
+      icon: UsersRound,
     },
     {
-      label: "Settings",
-      menuItems: [
-        {
-          title: "Workspace Settings",
-          icon: <Fence size={15} />,
-          href: "/dashboard/workspace-settings",
-        },
-        {
-          title: "Subscription & Billing",
-          icon: <CreditCard size={15} />,
-          href: "/dashboard/billing",
-        },
-        {
-          title: "Profile Settings",
-          icon: <UserRoundCog size={15} />,
-          href: "/dashboard/profile-settings",
-        },
-      ],
+      title: "Leads",
+      href: `/dashboard/leads${
+        workspaceId ? `?workspaceId=${workspaceId}` : ""
+      }`,
+      path: "/dashboard/leads",
+      icon: User,
+    },
+    {
+      title: "Deals",
+      href: `/dashboard/deals${
+        workspaceId ? `?workspaceId=${workspaceId}` : ""
+      }`,
+      path: "/dashboard/deals",
+      icon: ClipboardCheck,
+    },
+    {
+      title: "Analytics",
+      href: `/dashboard/analytics${
+        workspaceId ? `?workspaceId=${workspaceId}` : ""
+      }`,
+      path: "/dashboard/analytics",
+      icon: Bell,
     },
   ];
 
@@ -108,26 +95,26 @@ const DashboardSidebar = () => {
       </SidebarHeader>
 
       <SidebarContent>
-        {menuData.map((menuItem) => (
-          <SidebarGroup key={menuItem.label} className="p-0 no-scrollbar">
-            <SidebarGroupLabel className="text-[#9ca3af] uppercase">
-              {menuItem.label}
-            </SidebarGroupLabel>
-
-            {menuItem.menuItems.map((name) => (
-              <SidebarGroupContent key={name.title}>
-                <Link href={name.href}>
-                  <SidebarMenu className="hover:bg- py-2 px-4 rounded-md pl-2">
-                    <div className="flex gap-3 items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-blue-50 hover:text-blue-700 group cursor-pointer whitespace-nowrap">
-                      {name.icon}{" "}
-                      <SidebarMenuItem>{name.title}</SidebarMenuItem>
+        {menuData.map((menuItem) => {
+          const isActive = pathname === menuItem.path;
+          const activeClass = isActive ? "bg-blue-100 text-blue-700" : "";
+          return (
+            <SidebarGroup key={menuItem.title} className="p-0 no-scrollbar">
+              <SidebarGroupContent>
+                <Link href={menuItem.href}>
+                  <SidebarMenu className="py-2 px-4 rounded-md pl-2">
+                    <div
+                      className={`flex gap-3 items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-blue-50 hover:text-blue-700 group cursor-pointer whitespace-nowrap ${activeClass}`}
+                    >
+                      <menuItem.icon size={15} />
+                      <SidebarMenuItem>{menuItem.title}</SidebarMenuItem>
                     </div>
                   </SidebarMenu>
                 </Link>
               </SidebarGroupContent>
-            ))}
-          </SidebarGroup>
-        ))}
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
     </Sidebar>
   );

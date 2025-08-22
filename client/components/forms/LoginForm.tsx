@@ -1,4 +1,5 @@
 "use client";
+import { useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -8,7 +9,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -59,9 +59,20 @@ const LoginForm = () => {
         toast.success("Success", {
           description: "Login successful",
         });
-        await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
 
-        router.push("/dashboard");
+        try {
+          // Invalidate specific queries to ensure fresh data
+          await queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+          await queryClient.invalidateQueries({ queryKey: ["userWorkspaces"] });
+
+          // Small delay to ensure queries are properly invalidated
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          router.push("/dashboard");
+        } catch (error) {
+          console.error("Error during post-login setup:", error);
+          router.push("/dashboard");
+        }
       },
       onError: (err) => {
         toast.error("Error", {
