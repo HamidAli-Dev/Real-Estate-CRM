@@ -8,6 +8,11 @@ const appConfig = () => ({
   DATABASE_URL: getEnv("DATABASE_URL", ""),
   CORS_ORIGIN: getEnv("CORS_ORIGIN", "localhost:3000"),
 
+  // Cloudinary
+  CLOUDINARY_CLOUD_NAME: getEnv("CLOUDINARY_CLOUD_NAME", ""),
+  CLOUDINARY_API_KEY: getEnv("CLOUDINARY_API_KEY", ""),
+  CLOUDINARY_API_SECRET: getEnv("CLOUDINARY_API_SECRET", ""),
+
   // stripe
   STRIPE_BASIC_PLAN_STRIPE_PRICE_ID: getEnv(
     "STRIPE_BASIC_PLAN_STRIPE_PRICE_ID",

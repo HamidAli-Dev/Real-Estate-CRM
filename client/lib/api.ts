@@ -89,7 +89,8 @@ export const createWorkspaceMutationFn = async (data: { name: string }) => {
   // Since axios interceptor returns res.data, response is already the data object
   const responseData = response as any;
 
-  if (responseData && responseData.success) {
+  // Check for the actual response structure: { message: string, data: any }
+  if (responseData && responseData.data) {
     return responseData.data; // Return the actual workspace data
   } else {
     throw new Error(responseData?.message || "Failed to create workspace");
@@ -106,7 +107,8 @@ export const editWorkspaceMutationFn = async (data: {
   // Since axios interceptor returns res.data, response is already the data object
   const responseData = response as any;
 
-  if (responseData && responseData.success) {
+  // Check for the actual response structure: { message: string, data: any }
+  if (responseData && responseData.data) {
     return responseData.data; // Return the actual workspace data
   } else {
     throw new Error(responseData?.message || "Failed to update workspace");
@@ -220,10 +222,18 @@ export const createPropertyMutationFn = async (data: createPropertyType) => {
 
   // Add text fields
   Object.keys(data).forEach((key) => {
-    if (key !== "images") {
-      formData.append(key, data[key as keyof createPropertyType] as string);
+    if (key !== "images" && key !== "features") {
+      const value = data[key as keyof createPropertyType];
+      if (value !== undefined && value !== null) {
+        formData.append(key, value.toString());
+      }
     }
   });
+
+  // Handle features array specially
+  if (data.features && data.features.length > 0) {
+    formData.append("features", JSON.stringify(data.features));
+  }
 
   // Add images
   if (data.images) {
@@ -232,17 +242,45 @@ export const createPropertyMutationFn = async (data: createPropertyType) => {
     });
   }
 
-  const response = await API.post("/properties", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+  try {
+    const response = await API.post("/properties", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      timeout: 60000, // 60 seconds timeout for image uploads
+    });
 
-  // Check if the response indicates success
-  if (response.data.success) {
-    return response.data.data; // Return the actual property data
-  } else {
-    throw new Error(response.data.message || "Failed to create property");
+    // Since axios interceptor returns res.data, response is already the data object
+    const responseData = response as any;
+    // Check if the response indicates success
+    if (responseData && responseData.data) {
+      return responseData.data; // Return the actual property data
+    } else {
+      throw new Error(responseData?.message || "Failed to create property");
+    }
+  } catch (error: any) {
+    console.error("❌ createPropertyMutationFn error:", error);
+
+    // Handle different types of errors
+    if (error.code === "ECONNABORTED") {
+      throw new Error(
+        "Request timeout - Please try again with fewer or smaller images"
+      );
+    }
+
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+
+    if (error.data?.message) {
+      throw new Error(error.data.message);
+    }
+
+    if (error.message) {
+      throw new Error(error.message);
+    }
+
+    throw new Error("Failed to create property - Please try again");
   }
 };
 
@@ -257,10 +295,22 @@ export const editPropertyMutationFn = async ({
 
   // Add text fields
   Object.keys(data).forEach((key) => {
-    if (key !== "images" && data[key as keyof editPropertyType] !== undefined) {
-      formData.append(key, data[key as keyof editPropertyType] as string);
+    if (
+      key !== "images" &&
+      key !== "features" &&
+      data[key as keyof editPropertyType] !== undefined
+    ) {
+      const value = data[key as keyof editPropertyType];
+      if (value !== undefined && value !== null) {
+        formData.append(key, value.toString());
+      }
     }
   });
+
+  // Handle features array specially
+  if (data.features && data.features.length > 0) {
+    formData.append("features", JSON.stringify(data.features));
+  }
 
   // Add images
   if (data.images) {
@@ -269,28 +319,66 @@ export const editPropertyMutationFn = async ({
     });
   }
 
-  const response = await API.put(`/properties/${id}`, formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
+  try {
+    const response = await API.put(`/properties/${id}`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      timeout: 60000, // 60 seconds timeout for image uploads
+    });
 
-  // Check if the response indicates success
-  if (response.data.success) {
-    return response.data.data; // Return the actual property data
-  } else {
-    throw new Error(response.data.message || "Failed to update property");
+    // Since axios interceptor returns res.data, response is already the data object
+    const responseData = response as any;
+    // Check if the response indicates success
+    if (responseData && responseData.data) {
+      return responseData.data; // Return the actual property data
+    } else {
+      throw new Error(responseData?.message || "Failed to update property");
+    }
+  } catch (error: any) {
+    console.error("❌ editPropertyMutationFn error:", error);
+
+    // Handle different types of errors
+    if (error.code === "ECONNABORTED") {
+      throw new Error(
+        "Request timeout - Please try again with fewer or smaller images"
+      );
+    }
+
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+
+    if (error.data?.message) {
+      throw new Error(error.data.message);
+    }
+
+    if (error.message) {
+      throw new Error(error.message);
+    }
+
+    throw new Error("Failed to update property - Please try again");
   }
 };
 
 export const deletePropertyMutationFn = async (id: string) => {
-  const response = await API.delete(`/properties/${id}`);
+  try {
+    const response = await API.delete(`/properties/${id}`);
 
-  // Check if the response indicates success
-  if (response.data.success) {
-    return response.data.data; // Return the actual data
-  } else {
-    throw new Error(response.data.message || "Failed to delete property");
+    // Since axios interceptor returns res.data, response is already the data object
+    const responseData = response as any;
+    // Check if the response indicates success
+    if (responseData) {
+      return responseData.message || "Property deleted successfully"; // Return success message
+    } else {
+      throw new Error(responseData?.message || "Failed to delete property");
+    }
+  } catch (error: any) {
+    console.error("❌ deletePropertyMutationFn error:", error);
+
+    if (error.response?.message) {
+      throw new Error(error.response.message);
+    }
   }
 };
 
@@ -300,11 +388,11 @@ export const getPropertiesQueryFn = async (workspaceId: string) => {
   // Since axios interceptor returns res.data, response is already the data object
   const responseData = response as any;
 
-  // Check if the response indicates success
-  if (responseData.success) {
+  // Check for the actual response structure: { message: string, data: any }
+  if (responseData && responseData.data) {
     return responseData.data; // Return the actual properties array
   } else {
-    throw new Error(responseData.message || "Failed to fetch properties");
+    throw new Error(responseData?.message || "Failed to fetch properties");
   }
 };
 
@@ -314,11 +402,11 @@ export const getPropertyByIdQueryFn = async (id: string) => {
   // Since axios interceptor returns res.data, response is already the data object
   const responseData = response as any;
 
-  // Check if the response indicates success
-  if (responseData.success) {
+  // Check for the actual response structure: { message: string, data: any }
+  if (responseData && responseData.data) {
     return responseData.data; // Return the actual property data
   } else {
-    throw new Error(responseData.message || "Failed to fetch property");
+    throw new Error(responseData?.message || "Failed to fetch property");
   }
 };
 
@@ -330,10 +418,10 @@ export const getPropertyCategoriesQueryFn = async (workspaceId: string) => {
   // Since axios interceptor returns res.data, response is already the data object
   const responseData = response as any;
 
-  // Check if the response indicates success
-  if (responseData.success) {
+  // Check for the actual response structure: { message: string, data: any }
+  if (responseData && responseData.data) {
     return responseData.data; // Return the actual categories array
   } else {
-    throw new Error(responseData.message || "Failed to fetch categories");
+    throw new Error(responseData?.message || "Failed to fetch categories");
   }
 };

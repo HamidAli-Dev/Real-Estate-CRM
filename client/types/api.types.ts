@@ -141,6 +141,12 @@ export interface propertyType {
   category: propertyCategoryType;
   categoryId: string;
   images: propertyImageType[];
+  // New fields for wizard
+  yearBuilt?: number;
+  parkingSpaces?: number;
+  features?: string[];
+  zipCode?: string;
+  state?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -171,6 +177,12 @@ export interface createPropertyType {
   images: File[];
   workspaceId: string;
   listedById: string;
+  // New fields for wizard
+  yearBuilt?: number;
+  parkingSpaces?: number;
+  features?: string[];
+  zipCode?: string;
+  state?: string;
 }
 
 export interface editPropertyType {
@@ -197,6 +209,12 @@ export interface editPropertyType {
     | "Warehouse";
   categoryId?: string;
   images?: File[];
+  // New fields for wizard
+  yearBuilt?: number;
+  parkingSpaces?: number;
+  features?: string[];
+  zipCode?: string;
+  state?: string;
 }
 
 export interface propertyCategoryType {

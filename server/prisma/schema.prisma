@@ -123,29 +123,35 @@ enum Category {
 }
 
 model Property {
-  id           String           @id @default(uuid())
-  title        String
-  description  String?
-  location     String
-  city         String
-  address      String?
-  price        Float
-  size         Float? // in sq ft
-  bedrooms     Int?
-  bathrooms    Int?
-  status       PropertyStatus
-  purpose      PropertyPurpose
-  propertyType PropertyType
-  listedBy     User             @relation("ListedBy", fields: [listedById], references: [id])
-  listedById   String
-  workspace    Workspace        @relation(fields: [workspaceId], references: [id])
-  workspaceId  String
-  category     PropertyCategory @relation(fields: [categoryId], references: [id])
-  categoryId   String
-  images       PropertyImage[]
-  leadLinks    LeadProperty[]
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id            String           @id @default(uuid())
+  title         String
+  description   String?
+  location      String
+  city          String
+  address       String?
+  price         Float
+  size          Float? // in sq ft
+  bedrooms      Int?
+  bathrooms     Int?
+  status        PropertyStatus
+  purpose       PropertyPurpose
+  propertyType  PropertyType
+  listedBy      User             @relation("ListedBy", fields: [listedById], references: [id])
+  listedById    String
+  workspace     Workspace        @relation(fields: [workspaceId], references: [id])
+  workspaceId   String
+  category      PropertyCategory @relation(fields: [categoryId], references: [id])
+  categoryId    String
+  images        PropertyImage[]
+  leadLinks     LeadProperty[]
+  // New wizard fields
+  yearBuilt     Int?
+  parkingSpaces Int?
+  features      String[] // Array of strings for property features
+  zipCode       String?
+  state         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 }
 
 enum PropertyStatus {
