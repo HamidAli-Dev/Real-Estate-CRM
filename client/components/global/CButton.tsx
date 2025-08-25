@@ -10,7 +10,7 @@ interface CButtonProps {
 
 const CButton = ({ btnTxt, btnHref, className }: CButtonProps) => {
   return (
-    <Button className={`${className}`} variant="customPrimary" asChild>
+    <Button className={`${className}`} asChild>
       <Link href={btnHref}>{btnTxt}</Link>
     </Button>
   );
