@@ -10,6 +10,7 @@ import {
   inviteUserController,
   updateUserRoleController,
   removeUserController,
+  deleteWorkspaceController,
 } from "../controllers/workspace.controller";
 import { authenticate } from "../middlewares/isAuthenticated.middleware";
 import { authorizeRoles } from "../middlewares/authorizeRoles.middleware";
@@ -37,6 +38,13 @@ workspaceRoutes.put(
   "/:workspaceId",
   authorizeRoles(Role.Owner),
   editWorkspaceController
+);
+
+// Delete workspace - only Owners can delete workspaces
+workspaceRoutes.delete(
+  "/:workspaceId",
+  authorizeRoles(Role.Owner),
+  deleteWorkspaceController
 );
 
 // Get workspace users - accessible to all workspace members

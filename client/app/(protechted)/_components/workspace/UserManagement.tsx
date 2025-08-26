@@ -1,9 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Users, Shield, Edit, Trash2, Loader } from "lucide-react";
+import {
+  Plus,
+  Users,
+  Shield,
+  Edit,
+  Trash2,
+  Loader,
+  AlertTriangle,
+} from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,9 +32,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   Form,
   FormControl,
@@ -210,6 +218,7 @@ const permissionGroups: permissionGroupType[] = [
 const UserManagement = () => {
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const { currentWorkspace } = useWorkspaceContext();
   const { user } = useAuthContext();
 
@@ -542,10 +551,10 @@ const UserManagement = () => {
                 {isInviting ? (
                   <>
                     <Loader className="w-4 h-4 mr-2 animate-spin" />
-                    Adding User...
+                    Inviting...
                   </>
                 ) : (
-                  "Add User"
+                  "Invite User"
                 )}
               </AlertDialogAction>
             </AlertDialogFooter>

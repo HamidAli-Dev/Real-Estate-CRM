@@ -89,7 +89,6 @@ export const createWorkspaceMutationFn = async (data: { name: string }) => {
   // Since axios interceptor returns res.data, response is already the data object
   const responseData = response as any;
 
-  // Check for the actual response structure: { message: string, data: any }
   if (responseData && responseData.data) {
     return responseData.data; // Return the actual workspace data
   } else {
@@ -112,6 +111,20 @@ export const editWorkspaceMutationFn = async (data: {
     return responseData.data; // Return the actual workspace data
   } else {
     throw new Error(responseData?.message || "Failed to update workspace");
+  }
+};
+
+export const deleteWorkspaceMutationFn = async (workspaceId: string) => {
+  const response = await API.delete(`/workspace/${workspaceId}`);
+
+  // Since axios interceptor returns res.data, response is already the data object
+  const responseData = response as any;
+
+  // Check for the actual response structure: { message: string, data: any }
+  if (responseData && responseData.data) {
+    return responseData.data; // Return the actual response data
+  } else {
+    throw new Error(responseData?.message || "Failed to delete workspace");
   }
 };
 

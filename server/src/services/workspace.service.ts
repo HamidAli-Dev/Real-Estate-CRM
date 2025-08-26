@@ -297,26 +297,28 @@ export const updateUserRoleService = async (
 export const removeUserFromWorkspaceService = async (
   workspaceId: string,
   targetUserId: string,
-  userId: string
+  currentUserId: string
 ) => {
-  // Check if user has access to this workspace
-  const userWorkspace = await db.userWorkspace.findFirst({
+  // Check if current user has access to this workspace
+  const currentUserWorkspace = await db.userWorkspace.findFirst({
     where: {
       workspaceId,
-      userId,
+      userId: currentUserId,
     },
   });
 
-  if (!userWorkspace) {
+  if (!currentUserWorkspace) {
     throw new BadRequestException("You don't have access to this workspace");
   }
 
   // Only Owners and Admins can remove users
-  if (!["Owner", "Admin"].includes(userWorkspace.role)) {
-    throw new BadRequestException("You don't have permission to remove users");
+  if (!["Owner", "Admin"].includes(currentUserWorkspace.role)) {
+    throw new BadRequestException(
+      "Only workspace owners and admins can remove users"
+    );
   }
 
-  // Check if target user exists in workspace
+  // Check if target user exists in this workspace
   const targetUserWorkspace = await db.userWorkspace.findFirst({
     where: {
       workspaceId,
@@ -325,18 +327,118 @@ export const removeUserFromWorkspaceService = async (
   });
 
   if (!targetUserWorkspace) {
-    throw new BadRequestException("User not found in workspace");
+    throw new BadRequestException("User is not a member of this workspace");
   }
 
-  // Prevent removing the owner
-  if (targetUserWorkspace.role === "Owner") {
-    throw new BadRequestException("Cannot remove workspace owner");
+  // Owners cannot remove themselves
+  if (targetUserId === currentUserId && currentUserWorkspace.role === "Owner") {
+    throw new BadRequestException(
+      "Owners cannot remove themselves from the workspace"
+    );
   }
 
-  // Remove user from workspace (this will cascade delete permissions)
+  // Remove user from workspace
   await db.userWorkspace.delete({
-    where: { id: targetUserWorkspace.id },
+    where: {
+      id: targetUserWorkspace.id,
+    },
   });
 
-  return { message: "User removed from workspace successfully" };
+  return { message: "User removed successfully" };
+};
+
+export const deleteWorkspaceService = async (
+  workspaceId: string,
+  userId: string
+) => {
+  // Check if user has access to this workspace
+  const userWorkspace = await db.userWorkspace.findFirst({
+    where: {
+      workspaceId,
+      userId,
+    },
+    include: {
+      workspace: true,
+    },
+  });
+
+  if (!userWorkspace) {
+    throw new BadRequestException("You don't have access to this workspace");
+  }
+
+  // Only Owners can delete workspaces
+  if (userWorkspace.role !== "Owner") {
+    throw new BadRequestException(
+      "Only workspace owners can delete workspaces"
+    );
+  }
+
+  // Delete workspace and all associated data in a transaction
+  await db.$transaction(async (tx) => {
+    // Delete all user-workspace relationships
+    await tx.userWorkspace.deleteMany({
+      where: { workspaceId },
+    });
+
+    // Delete all role permissions associated with this workspace
+    await tx.rolePermission.deleteMany({
+      where: {
+        userWorkspace: {
+          workspaceId,
+        },
+      },
+    });
+
+    // Delete workspace settings
+    await tx.workspaceSettings.deleteMany({
+      where: { workspaceId },
+    });
+
+    // Delete all properties associated with this workspace
+    await tx.property.deleteMany({
+      where: { workspaceId },
+    });
+
+    // Delete all leads associated with this workspace
+    await tx.lead.deleteMany({
+      where: { workspaceId },
+    });
+
+    // Delete all deals associated with this workspace
+    await tx.deal.deleteMany({
+      where: { workspaceId },
+    });
+
+    // Delete all activities associated with this workspace
+    await tx.activity.deleteMany({
+      where: { workspaceId },
+    });
+
+    // Delete all files associated with this workspace
+    await tx.file.deleteMany({
+      where: { workspaceId },
+    });
+
+    // Delete all categories associated with this workspace
+    await tx.propertyCategory.deleteMany({
+      where: { workspaceId },
+    });
+
+    // Delete all notifications associated with this workspace
+    await tx.notification.deleteMany({
+      where: { workspaceId },
+    });
+
+    // Delete subscription if exists
+    await tx.subscription.deleteMany({
+      where: { workspaceId },
+    });
+
+    // Finally, delete the workspace itself
+    await tx.workspace.delete({
+      where: { id: workspaceId },
+    });
+  });
+
+  return { message: "Workspace deleted successfully" };
 };

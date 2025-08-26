@@ -10,6 +10,7 @@ import {
   inviteUserToWorkspaceService,
   updateUserRoleService,
   removeUserFromWorkspaceService,
+  deleteWorkspaceService,
 } from "../services/workspace.service";
 import { BadRequestException } from "../utils/AppError";
 
@@ -165,6 +166,20 @@ export const removeUserController = asyncHandler(
 
     return res.status(HTTPSTATUS.OK).json({
       message: "User removed from workspace successfully",
+      data: result,
+    });
+  }
+);
+
+export const deleteWorkspaceController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user.id;
+    const workspaceId = req.params.workspaceId;
+
+    const result = await deleteWorkspaceService(workspaceId, userId);
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: "Workspace deleted successfully",
       data: result,
     });
   }

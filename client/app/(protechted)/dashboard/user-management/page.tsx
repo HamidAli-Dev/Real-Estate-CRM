@@ -1,5 +1,5 @@
 import TopBar from "../../_components/TopBar";
-import UserManagement from "@/components/workspace/UserManagement";
+import UserManagement from "@/app/(protechted)/_components/workspace/UserManagement";
 
 const UserManagementPage = () => {
   return (

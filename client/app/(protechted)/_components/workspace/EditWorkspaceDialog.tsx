@@ -46,7 +46,6 @@ const EditWorkspaceDialog: React.FC<EditWorkspaceDialogProps> = ({
     resolver: zodResolver(require("@/lib/validation").editWorkspaceSchema),
     defaultValues: {
       name: workspace.workspace.name,
-      domain: workspace.workspace.domain || "",
     },
   });
 
@@ -55,7 +54,6 @@ const EditWorkspaceDialog: React.FC<EditWorkspaceDialogProps> = ({
     if (workspace) {
       form.reset({
         name: workspace.workspace.name,
-        domain: workspace.workspace.domain || "",
       });
     }
   }, [workspace, form]);
@@ -64,12 +62,17 @@ const EditWorkspaceDialog: React.FC<EditWorkspaceDialogProps> = ({
     mutationFn: editWorkspaceMutationFn,
     onSuccess: (data) => {
       toast.success("Workspace Updated!", {
-        description: `Your workspace "${data.data.workspace.name}" has been updated successfully.`,
+        description: `Your workspace "${data.workspace.name}" has been updated successfully.`,
       });
 
       // Invalidate and refetch workspaces data
       queryClient.invalidateQueries({ queryKey: ["userWorkspaces"] });
       queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+
+      // Also invalidate the current workspace query to update the trigger button
+      queryClient.invalidateQueries({
+        queryKey: ["workspace", workspace.workspace.id],
+      });
 
       onClose();
     },
@@ -91,9 +94,6 @@ const EditWorkspaceDialog: React.FC<EditWorkspaceDialogProps> = ({
       editWorkspace({
         workspaceId: workspace.workspace.id,
         name: values.name,
-        ...(values.domain && !workspace.workspace.domain
-          ? { domain: values.domain }
-          : {}),
       });
     } finally {
       setIsSubmitting(false);
@@ -143,59 +143,6 @@ const EditWorkspaceDialog: React.FC<EditWorkspaceDialogProps> = ({
                         disabled={isSubmitting}
                       />
                     </FormControl>
-                    <FormMessage className="text-sm text-red-600" />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="domain"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-medium text-gray-700">
-                      Subdomain
-                    </FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          {...field}
-                          placeholder="yourcompany"
-                          className={`w-full px-3 py-2 pr-24 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                            !canEditDomain
-                              ? "bg-gray-100 cursor-not-allowed"
-                              : ""
-                          }`}
-                          disabled={isSubmitting || !canEditDomain}
-                        />
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                          <span className="text-sm text-gray-500">
-                            .eliteestate.com
-                          </span>
-                        </div>
-                      </div>
-                    </FormControl>
-
-                    {!canEditDomain ? (
-                      <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded-md border border-amber-200">
-                        <div className="flex items-center space-x-1">
-                          <Globe className="w-3 h-3" />
-                          <span>
-                            Domain is locked and cannot be changed once set
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-xs text-gray-500 mt-1">
-                        Your workspace will be available at:{" "}
-                        <span className="font-mono text-blue-600">
-                          {field.value
-                            ? `${field.value}.eliteestate.com`
-                            : "yourcompany.eliteestate.com"}
-                        </span>
-                      </div>
-                    )}
-
                     <FormMessage className="text-sm text-red-600" />
                   </FormItem>
                 )}

@@ -10,15 +10,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { useAuthContext } from "@/context/auth-provider";
-import WorkspaceSelector from "@/components/workspace/WorkspaceSelector";
-import WorkspaceNavigation from "@/components/workspace/WorkspaceNavigation";
 
 import { Button } from "@/components/ui/button";
+import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 
 const TopBar = () => {
   const [isOpenDropdown, setIsOpenDropdown] = useState(false);
 
   const { user, logout } = useAuthContext();
+  const { open } = useSidebar();
 
   const handleLogout = async () => {
     await logout();
@@ -28,10 +28,12 @@ const TopBar = () => {
     <div className="px-6 py-4 border-b border-gray-200 bg-white shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
+          {!open && (
+            <SidebarTrigger className="!text-white !p-0 !bg-gray-800" />
+          )}
           <h4 className="text-lg font-semibold text-gray-900">
             Estate Elite CRM
           </h4>
-          <WorkspaceSelector />
         </div>
         <div className="flex items-center space-x-4">
           <div className="relative">
@@ -58,9 +60,6 @@ const TopBar = () => {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </div>
-      <div className="mt-4">
-        <WorkspaceNavigation />
       </div>
     </div>
   );

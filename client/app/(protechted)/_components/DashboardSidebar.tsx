@@ -24,7 +24,9 @@ import {
   User,
   UserRoundCog,
   UsersRound,
+  Building2,
 } from "lucide-react";
+import WorkspaceSelector from "@/app/(protechted)/_components/workspace/WorkspaceSelector";
 
 const DashboardSidebar = () => {
   const pathname = usePathname();
@@ -54,6 +56,7 @@ const DashboardSidebar = () => {
       path: "/dashboard/user-management",
       icon: UsersRound,
     },
+
     {
       title: "Leads",
       href: `/dashboard/leads${
@@ -78,12 +81,20 @@ const DashboardSidebar = () => {
       path: "/dashboard/analytics",
       icon: Bell,
     },
+    {
+      title: "Workspace Settings",
+      href: `/dashboard/workspace-settings${
+        workspaceId ? `?workspaceId=${workspaceId}` : ""
+      }`,
+      path: "/dashboard/workspace-settings",
+      icon: Building2,
+    },
   ];
 
   return (
     <Sidebar className="pl-3 no-scrollbar">
-      <SidebarHeader className="flex flex-row w-full items-center justify-between">
-        <Link href="/">
+      <SidebarHeader className="flex flex-row w-full items-center justify-between pt-4">
+        <Link href="/dashboard" className="px-3">
           <Image
             src={"/images/logo-2.png"}
             alt="logo"
@@ -94,6 +105,16 @@ const DashboardSidebar = () => {
         <SidebarTrigger className="!text-white !p-0 !bg-gray-800" />
       </SidebarHeader>
 
+      {/* Workspace Selector Section */}
+      <div className="px-4 py-3 border-b border-gray-100">
+        <div className="mb-2">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+            Workspace
+          </span>
+        </div>
+        <WorkspaceSelector />
+      </div>
+
       <SidebarContent>
         {menuData.map((menuItem) => {
           const isActive = pathname === menuItem.path;
@@ -102,7 +123,7 @@ const DashboardSidebar = () => {
             <SidebarGroup key={menuItem.title} className="p-0 no-scrollbar">
               <SidebarGroupContent>
                 <Link href={menuItem.href}>
-                  <SidebarMenu className="py-2 px-4 rounded-md pl-2">
+                  <SidebarMenu className="py-2 px-4 rounded-md">
                     <div
                       className={`flex gap-3 items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-blue-50 hover:text-blue-700 group cursor-pointer whitespace-nowrap ${activeClass}`}
                     >
