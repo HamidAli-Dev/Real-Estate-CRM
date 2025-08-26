@@ -27,7 +27,6 @@ export const WorkspaceProvider = ({
 }) => {
   const [currentWorkspace, setCurrentWorkspace] =
     useState<userWorkspaceType | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
   const { user, isLoading: authLoading } = useAuthContext();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -63,64 +62,32 @@ export const WorkspaceProvider = ({
   useEffect(() => {
     if (currentWorkspaceData) {
       setCurrentWorkspace(currentWorkspaceData);
+    } else if (!workspaceId) {
+      // Clear current workspace if no workspaceId in URL
+      setCurrentWorkspace(null);
     }
-  }, [currentWorkspaceData]);
+  }, [currentWorkspaceData, workspaceId]);
 
-  // Handle initial workspace selection after login
-  useEffect(() => {
-    // Wait for auth to be fully loaded and user to be available
-    if (
-      user &&
-      !authLoading &&
-      workspacesData &&
-      workspacesData.length > 0 &&
-      !workspaceId &&
-      pathname === "/dashboard" &&
-      !hasInitialized
-    ) {
-      const firstWorkspace = workspacesData[0];
-
-      // Use replace to avoid adding to browser history
-      router.replace(`/dashboard?workspaceId=${firstWorkspace.workspace.id}`);
-      setHasInitialized(true);
-    }
-  }, [
-    user,
-    authLoading,
-    workspacesData,
-    workspaceId,
-    pathname,
-    router,
-    hasInitialized,
-  ]);
-
-  // Fallback: If we're on dashboard without workspaceId and have workspaces, select one
+  // Handle workspace selection logic
   useEffect(() => {
     if (
       user &&
       !authLoading &&
-      workspacesData &&
+      workspacesData !== undefined && // Check if data has been fetched
       workspacesData.length > 0 &&
       !workspaceId &&
-      pathname === "/dashboard" &&
-      hasInitialized
+      pathname === "/dashboard"
     ) {
+      // User has workspaces but no workspaceId in URL, select the first one
       const firstWorkspace = workspacesData[0];
       router.replace(`/dashboard?workspaceId=${firstWorkspace.workspace.id}`);
     }
-  }, [
-    user,
-    authLoading,
-    workspacesData,
-    workspaceId,
-    pathname,
-    router,
-    hasInitialized,
-  ]);
-  // Reset initialization flag when user changes
+  }, [user, authLoading, workspacesData, workspaceId, pathname, router]);
+
+  // Reset when user changes
   useEffect(() => {
     if (!user) {
-      setHasInitialized(false);
+      setCurrentWorkspace(null);
     }
   }, [user]);
 

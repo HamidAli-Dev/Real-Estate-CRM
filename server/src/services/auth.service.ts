@@ -65,26 +65,9 @@ export const registerOwnerService = async ({
       },
     });
 
-    // Create default workspace
-    const workspace = await tx.workspace.create({
-      data: {
-        name: `${name}'s workspace`,
-        subscriptionPlan: null,
-      },
-    });
-
-    // Link user to workspace with Owner role
-    await tx.userWorkspace.create({
-      data: {
-        userId: owner.id,
-        workspaceId: workspace.id,
-        role: "Owner",
-      },
-    });
-
-    // Generate JWT
+    // Generate JWT without workspace (user will create workspace later)
     const token = jwt.sign(
-      { userId: owner.id, workspaceId: workspace.id, role: "Owner" },
+      { userId: owner.id },
       APP_CONFIG.JWT_SECRET as string,
       { expiresIn: "7d" }
     );
@@ -95,10 +78,6 @@ export const registerOwnerService = async ({
         name: owner.name,
         email: owner.email,
         role: "Owner",
-      },
-      workspace: {
-        id: workspace.id,
-        name: workspace.name,
       },
       token,
     };
@@ -130,7 +109,7 @@ export const loginService = async ({ email, password }: LoginInput) => {
     throw new BadRequestException("Invalid email or password");
   }
 
-  // For now, get first workspace + role
+  // Check if user has any workspaces
   const userWorkspace = user.workspaces[0];
 
   const accessToken = generateAccessToken({

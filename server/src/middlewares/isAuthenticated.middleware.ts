@@ -33,11 +33,34 @@ export const authenticate: RequestHandler = async (req, res, next) => {
       throw new UnauthorizedException("User not found");
     }
 
+    // Check if user has any workspaces to determine their role
+    const userWorkspaces = await db.userWorkspace.findMany({
+      where: { userId: user.id },
+    });
+
+    let userRole: Role | null = null;
+    let userWorkspaceId: string | null = null;
+
+    if (userWorkspaces.length > 0) {
+      // User has workspaces, get their role from the first one (or current one if specified)
+      const currentWorkspace = decoded.workspaceId
+        ? userWorkspaces.find((uw) => uw.workspaceId === decoded.workspaceId)
+        : userWorkspaces[0];
+
+      if (currentWorkspace) {
+        userRole = currentWorkspace.role;
+        userWorkspaceId = currentWorkspace.workspaceId;
+      }
+    } else {
+      // User has no workspaces yet - they get implicit Owner role for workspace creation
+      userRole = "Owner";
+    }
+
     req.user = {
       id: user.id,
       email: user.email,
-      role: decoded.role as Role,
-      workspaceId: decoded.workspaceId,
+      role: userRole,
+      workspaceId: userWorkspaceId,
     };
 
     next();

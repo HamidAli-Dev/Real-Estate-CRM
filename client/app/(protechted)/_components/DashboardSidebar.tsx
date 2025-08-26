@@ -27,6 +27,7 @@ import {
   Building2,
 } from "lucide-react";
 import WorkspaceSelector from "@/app/(protechted)/_components/workspace/WorkspaceSelector";
+import { Separator } from "@/components/ui/separator";
 
 const DashboardSidebar = () => {
   const pathname = usePathname();
@@ -92,7 +93,7 @@ const DashboardSidebar = () => {
   ];
 
   return (
-    <Sidebar className="pl-3 no-scrollbar">
+    <Sidebar className="pl-3 no-scrollbar !bg-sidebar">
       <SidebarHeader className="flex flex-row w-full items-center justify-between pt-4">
         <Link href="/dashboard" className="px-3">
           <Image
@@ -106,7 +107,7 @@ const DashboardSidebar = () => {
       </SidebarHeader>
 
       {/* Workspace Selector Section */}
-      <div className="px-4 py-3 border-b border-gray-100">
+      <div className="px-4 py-3">
         <div className="mb-2">
           <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
             Workspace

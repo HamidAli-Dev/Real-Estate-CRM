@@ -62,7 +62,7 @@ const WorkspaceSelector = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { currentWorkspace, userWorkspaces, switchWorkspace } =
+  const { currentWorkspace, userWorkspaces, switchWorkspace, isLoading } =
     useWorkspaceContext();
   const { user } = useAuthContext();
   const queryClient = useQueryClient();
@@ -130,11 +130,20 @@ const WorkspaceSelector = () => {
     setSearchQuery(""); // Clear search when switching
   };
 
-  if (!currentWorkspace) {
+  if (isLoading) {
     return (
       <div className="flex items-center space-x-2">
         <Loader className="w-4 h-4 animate-spin" />
         <span className="text-sm text-gray-500">Loading...</span>
+      </div>
+    );
+  }
+
+  if ((!currentWorkspace && !isLoading) || userWorkspaces.length === 0) {
+    return (
+      <div className="flex items-center space-x-2">
+        {/* <Loader className="w-4 h-4 animate-spin" /> */}
+        <span className="text-sm text-gray-500">not found</span>
       </div>
     );
   }
@@ -150,7 +159,7 @@ const WorkspaceSelector = () => {
             <div className="flex items-center space-x-2 min-w-0">
               <Building2 className="w-4 h-4 text-gray-600 flex-shrink-0" />
               <span className="font-medium text-sm text-gray-900 truncate">
-                {currentWorkspace.workspace.name}
+                {currentWorkspace?.workspace.name}
               </span>
             </div>
             <ChevronDown className="w-4 h-4 text-gray-500 flex-shrink-0" />
@@ -181,7 +190,7 @@ const WorkspaceSelector = () => {
             ) : (
               filteredWorkspaces.map((workspace) => {
                 const isCurrentWorkspace =
-                  workspace.workspace.id === currentWorkspace.workspace.id;
+                  workspace.workspace.id === currentWorkspace?.workspace.id;
                 return (
                   <DropdownMenuItem
                     key={workspace.workspace.id}
