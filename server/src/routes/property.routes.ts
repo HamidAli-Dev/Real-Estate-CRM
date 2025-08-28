@@ -7,7 +7,7 @@ import {
   deletePropertyController,
   getPropertyCategoriesController,
 } from "../controllers/property.controller";
-import { authenticate } from "../middlewares/isAuthenticated.middleware";
+import { authenticate } from "../middlewares/passportAuth.middleware";
 import { authorizeRoles } from "../middlewares/authorizeRoles.middleware";
 import {
   uploadPropertyImages,

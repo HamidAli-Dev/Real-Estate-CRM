@@ -5,6 +5,7 @@ import { BadRequestException } from "../utils/AppError";
 import { compareValue, hashValue } from "../utils/bcrypt";
 import { db } from "../utils/db";
 import { APP_CONFIG } from "../config/app.config";
+import { ErrorCode } from "../enums/error-code.enum";
 
 export interface JwtPayload {
   userId: string;
@@ -14,7 +15,7 @@ export interface JwtPayload {
 
 const generateAccessToken = (payload: JwtPayload) => {
   return jwt.sign(payload, APP_CONFIG.JWT_SECRET as string, {
-    expiresIn: "15m", // short-lived
+    expiresIn: "1h", // 1 hour
   });
 };
 
@@ -50,7 +51,10 @@ export const registerOwnerService = async ({
   });
 
   if (existingUser) {
-    throw new BadRequestException("Owner with this email already exists");
+    throw new BadRequestException(
+      "Owner with this email already exists",
+      ErrorCode.AUTH_EMAIL_ALREADY_EXISTS
+    );
   }
 
   const hashedPassword = await hashValue(password);
@@ -65,12 +69,15 @@ export const registerOwnerService = async ({
       },
     });
 
-    // Generate JWT without workspace (user will create workspace later)
+    // Generate JWT with Owner role
     const token = jwt.sign(
-      { userId: owner.id },
+      { userId: owner.id, role: "Owner" },
       APP_CONFIG.JWT_SECRET as string,
-      { expiresIn: "7d" }
+      { expiresIn: "1h" } // 1 hour
     );
+
+    // Generate refresh token
+    const refreshToken = await generateRefreshToken(owner.id);
 
     return {
       owner: {
@@ -80,6 +87,7 @@ export const registerOwnerService = async ({
         role: "Owner",
       },
       token,
+      refreshToken,
     };
   });
 
@@ -100,22 +108,32 @@ export const loginService = async ({ email, password }: LoginInput) => {
   });
 
   if (!user) {
-    throw new BadRequestException("Invalid email or password");
+    throw new BadRequestException(
+      "Invalid email or password",
+      ErrorCode.AUTH_USER_NOT_FOUND
+    );
   }
 
   const isPasswordValid = await compareValue(password, user.password);
 
   if (!isPasswordValid) {
-    throw new BadRequestException("Invalid email or password");
+    throw new BadRequestException(
+      "Invalid email or password",
+      ErrorCode.AUTH_USER_NOT_FOUND
+    );
   }
 
   // Check if user has any workspaces
   const userWorkspace = user.workspaces[0];
 
+  // If user has no workspaces, they get implicit Owner role for workspace creation
+  const userRole = userWorkspace?.role || "Owner";
+  const userWorkspaceId = userWorkspace?.workspaceId || null;
+
   const accessToken = generateAccessToken({
     userId: user.id,
-    workspaceId: userWorkspace?.workspaceId,
-    role: userWorkspace?.role,
+    workspaceId: userWorkspaceId,
+    role: userRole,
   });
 
   const refreshToken = await generateRefreshToken(user.id);
@@ -125,8 +143,8 @@ export const loginService = async ({ email, password }: LoginInput) => {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: userWorkspace?.role || null,
-      workspaceId: userWorkspace?.workspaceId || null,
+      role: userRole,
+      workspaceId: userWorkspaceId,
     },
     accessToken,
     refreshToken,

@@ -68,7 +68,13 @@ const LoginForm = () => {
           // Small delay to ensure queries are properly invalidated
           await new Promise((resolve) => setTimeout(resolve, 100));
 
-          router.push("/dashboard");
+          // Check for redirect parameter
+          const redirectTo = searchParams.get("redirect");
+          if (redirectTo) {
+            router.push(redirectTo);
+          } else {
+            router.push("/dashboard");
+          }
         } catch (error) {
           console.error("Error during post-login setup:", error);
           router.push("/dashboard");

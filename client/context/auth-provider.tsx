@@ -2,12 +2,11 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 import { getCurrentUserQueryFn, refreshTokenFn } from "@/lib/api";
 import { userType } from "@/types/api.types";
 import API from "@/lib/axios-client";
-import { useCookies } from "@/hooks/use-cookies";
 
 interface AuthContextProps {
   user?: userType | null;
@@ -19,38 +18,34 @@ interface AuthContextProps {
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
+// Helper function to check if current route is protected
+const isProtectedRoute = (pathname: string) => {
+  return (
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/workspace") ||
+    pathname.startsWith("/properties") ||
+    pathname.startsWith("/analytics")
+  );
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
 
   const [user, setUser] = useState<userType | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const { getCookie, setCookie, removeCookie, isClient } = useCookies();
 
   // Initialize auth state after hydration
   useEffect(() => {
-    if (isClient) {
-      setIsInitialized(true);
-    }
-  }, [isClient]);
+    setIsInitialized(true);
+  }, []);
 
-  // Initialize user state from cookies if available
-  useEffect(() => {
-    if (isInitialized && !user) {
-      const token = getCookie("accessToken");
-      if (!token) {
-        setUser(null);
-      }
-    }
-  }, [isInitialized, user, getCookie]);
-
-  // Handle initial loading state
-  useEffect(() => {
-    if (isInitialized && !getCookie("accessToken")) {
-      // If no token, we're not loading
-      setUser(null);
-    }
-  }, [isInitialized, getCookie]);
+  // Check if we should fetch user data
+  const shouldFetchUser =
+    isInitialized &&
+    isProtectedRoute(pathname) &&
+    !queryClient.getQueryData(["currentUser"]); // Don't fetch if we already have the data
 
   // Query: get current user from backend
   const { data, isSuccess, error, isLoading, refetch } = useQuery<{
@@ -59,7 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }>({
     queryKey: ["currentUser"],
     queryFn: getCurrentUserQueryFn,
-    enabled: !!getCookie("accessToken") && isClient && isInitialized, // only fetch if logged in, client-side, and initialized
+    enabled: shouldFetchUser, // Only fetch when needed
     retry: (failureCount, error: any) => {
       // Don't retry if it's an authentication error (let the interceptor handle it)
       if (error?.status === 401 || error?.errorCode === "ACCESS_UNAUTHORIZED") {
@@ -92,11 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Manual refresh function
   const refreshAuth = async () => {
     try {
-      const { accessToken } = await refreshTokenFn();
-      setCookie("accessToken", accessToken, {
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-      });
+      await refreshTokenFn();
       // Refetch user data with new token
       await refetch();
     } catch (error) {
@@ -112,19 +103,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (isSuccess && data?.user) {
       setUser(data.user);
+      // Reset the refresh failure flag when auth succeeds
+      if (typeof window !== "undefined") {
+        (window as any).__resetRefreshFlag?.();
+      }
     } else if (error) {
       console.log("❌ Error occurred:", error);
-      // If it's an auth error, try to refresh
-      const errorObj = error as any; // Type assertion for error properties
-      if (
-        errorObj?.status === 401 ||
-        errorObj?.errorCode === "ACCESS_UNAUTHORIZED"
-      ) {
-        console.log("Auth error detected, attempting refresh...");
-        refreshAuth();
-      } else {
-        setUser(null);
-      }
+      // Don't try to refresh here - let the axios interceptor handle it
+      setUser(null);
     } else if (isSuccess && !data?.user) {
       console.log("No user data found in response");
       setUser(null);
@@ -134,12 +120,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Logout function
   const logout = async () => {
     try {
-      await API.post("/auth/logout-all"); // backend clears refresh tokens
+      await API.post("/auth/logout-all"); // backend clears refresh tokens and cookies
     } catch (e) {
       console.error("Logout failed:", e);
     } finally {
-      removeCookie("accessToken");
-      removeCookie("refreshToken"); // Also clear refresh token
       setUser(null);
       queryClient.clear(); // clear all react-query cache
       router.push("/auth/login");

@@ -6,7 +6,7 @@ const appConfig = () => ({
   JWT_SECRET: getEnv("JWT_SECRET", "your_jwt_secret"),
   JWT_EXPIRATION: getEnv("JWT_EXPIRATION", "1h"),
   DATABASE_URL: getEnv("DATABASE_URL", ""),
-  CORS_ORIGIN: getEnv("CORS_ORIGIN", "localhost:3000"),
+  CORS_ORIGIN: getEnv("CORS_ORIGIN", "http://localhost:3000"),
 
   // Cloudinary
   CLOUDINARY_CLOUD_NAME: getEnv("CLOUDINARY_CLOUD_NAME", ""),

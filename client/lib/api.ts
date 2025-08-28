@@ -1,4 +1,3 @@
-import Cookie from "js-cookie";
 import axios from "axios";
 
 import {
@@ -13,7 +12,7 @@ import API from "./axios-client";
 // Separate axios instance for refresh token to avoid interceptor loops
 const refreshAPI = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-  withCredentials: true,
+  withCredentials: true, // Need this for cookies
   timeout: 10000,
 });
 
@@ -33,37 +32,16 @@ export const loginMutationFn = async (data: {
   password: string;
 }) => {
   const response = await API.post("/auth/login", data);
-
-  // If login successful, update access token in cookies
-  if (response.data.accessToken) {
-    Cookie.set("accessToken", response.data.accessToken);
-
-    if (response.data.refreshToken) {
-      Cookie.set("refreshToken", response.data.refreshToken, {
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-      });
-    }
-  }
+  // Tokens are now set as HTTP-only cookies by the backend
   return response.data;
 };
 
-export const refreshTokenFn = async (): Promise<{ accessToken: string }> => {
-  const refreshToken = Cookie.get("refreshToken");
-
-  if (!refreshToken) {
-    console.log("❌ No refresh token found in cookies");
-    throw new Error("No refresh token available");
-  }
-
+export const refreshTokenFn = async (): Promise<{ message: string }> => {
   console.log("🔄 Attempting to refresh token...");
 
   try {
     // Use separate axios instance to avoid interceptor loops
-    const response = await refreshAPI.post("/auth/refresh-token", {
-      refreshToken,
-    });
+    const response = await refreshAPI.post("/auth/refresh-token");
     console.log("✅ Refresh token response:", response.data);
     return response.data; // Direct access to response.data since no interceptor
   } catch (error) {

@@ -32,7 +32,26 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   }
 
   if (err instanceof AppError) {
-    return res.status(HTTPSTATUS.BAD_REQUEST).json({
+    // Determine the correct status code based on error type
+    let statusCode = HTTPSTATUS.BAD_REQUEST;
+
+    if (
+      err.errorCode === ErrorCode.ACCESS_UNAUTHORIZED ||
+      err.message.includes("Authentication failed") ||
+      err.message.includes("Invalid or expired token")
+    ) {
+      statusCode = HTTPSTATUS.UNAUTHORIZED;
+    }
+
+    console.log("🚨 AppError handled:", {
+      message: err.message,
+      errorCode: err.errorCode,
+      originalStatusCode: err.statusCode,
+      finalStatusCode: statusCode,
+      path: req.path,
+    });
+
+    return res.status(statusCode).json({
       message: err.message,
       errorCode: err.errorCode,
     });

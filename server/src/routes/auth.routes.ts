@@ -7,7 +7,7 @@ import {
   refreshAccessToken,
   registerOwner,
 } from "../controllers/auth.controller";
-import { authenticate } from "../middlewares/isAuthenticated.middleware";
+import { authenticate } from "../middlewares/passportAuth.middleware";
 import { authorizeRoles } from "../middlewares/authorizeRoles.middleware";
 
 const authRoutes = Router();

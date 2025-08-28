@@ -1,6 +1,7 @@
 import { Router } from "express";
+
 import { getCurrentUserController } from "../controllers/user.controller";
-import { authenticate } from "../middlewares/isAuthenticated.middleware";
+import { authenticate } from "../middlewares/passportAuth.middleware";
 
 const userRoutes = Router();
 

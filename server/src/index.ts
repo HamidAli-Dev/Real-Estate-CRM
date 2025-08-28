@@ -2,10 +2,12 @@ import "dotenv/config";
 import express, { Request, Response } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import passport from "passport";
 
 import { HTTPSTATUS } from "./config/http.config";
 import { APP_CONFIG } from "./config/app.config";
 import { errorHandler } from "./middlewares/errorHandler.middleware";
+import passportConfig from "./config/passport.config";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import workspaceRoutes from "./routes/workspace.routes";
@@ -22,6 +24,10 @@ app.use(
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Initialize passport
+app.use(passport.initialize());
+passportConfig();
 
 app.get("/", (req: Request, res: Response) => {
   res.status(HTTPSTATUS.OK).json({

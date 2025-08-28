@@ -7,7 +7,7 @@ export const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const API = axios.create({
   baseURL,
-  withCredentials: true,
+  withCredentials: true, // Need this for cookies
   timeout: 10000,
 });
 
@@ -17,6 +17,11 @@ let failedQueue: Array<{
   resolve: (value: any) => void;
   reject: (error: any) => void;
 }> = [];
+
+// Flag to prevent infinite refresh loops
+let hasRefreshFailed = false;
+let lastRefreshAttempt = 0;
+const REFRESH_COOLDOWN = 5000; // 5 seconds cooldown between refresh attempts
 
 const processQueue = (error: any, token: string | null = null) => {
   failedQueue.forEach(({ resolve, reject }) => {
@@ -30,42 +35,6 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-// Safe cookie functions that check if we're in the browser
-const getCookie = (name: string): string | undefined => {
-  if (typeof window === "undefined") return undefined;
-
-  try {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(";").shift();
-  } catch (error) {
-    console.error("Error reading cookie:", error);
-  }
-  return undefined;
-};
-
-const setCookie = (name: string, value: string, options: any = {}) => {
-  if (typeof window === "undefined") return;
-
-  try {
-    document.cookie = `${name}=${value}; path=/; ${
-      options.secure ? "secure;" : ""
-    } ${options.sameSite ? `samesite=${options.sameSite};` : ""}`;
-  } catch (error) {
-    console.error("Error setting cookie:", error);
-  }
-};
-
-const removeCookie = (name: string) => {
-  if (typeof window === "undefined") return;
-
-  try {
-    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-  } catch (error) {
-    console.error("Error removing cookie:", error);
-  }
-};
-
 API.interceptors.response.use(
   (res) => {
     return res.data;
@@ -76,15 +45,45 @@ API.interceptors.response.use(
     const status = response?.status;
     const originalRequest = err.config;
 
-    // Check for 401 status and either "Unauthorized" message or "ACCESS_UNAUTHORIZED" error code
-    if (
-      status === 401 &&
-      (data === "Unauthorized" || data?.errorCode === "ACCESS_UNAUTHORIZED")
-    ) {
+    // Check for 401 status - handle both token expiry and unauthorized access
+    if (status === 401) {
+      const now = Date.now();
+
+      console.log("🚨 401 Unauthorized detected:", {
+        status,
+        data,
+        originalRequest: originalRequest.url,
+        hasRefreshFailed,
+        timeSinceLastRefresh: now - lastRefreshAttempt,
+        inCooldown:
+          hasRefreshFailed && now - lastRefreshAttempt < REFRESH_COOLDOWN,
+      });
+
+      // Check if we're in a refresh cooldown period
+      if (hasRefreshFailed && now - lastRefreshAttempt < REFRESH_COOLDOWN) {
+        console.log("🚫 In refresh cooldown, redirecting to login...");
+        if (typeof window !== "undefined") {
+          window.location.href = "/auth/login";
+        }
+        return Promise.reject(err);
+      }
+
+      // Check if this is a refresh token request that failed - don't retry refresh on refresh failure
+      if (originalRequest.url?.includes("/refresh-token")) {
+        console.log(
+          "🚫 Refresh token request itself failed, redirecting to login..."
+        );
+        if (typeof window !== "undefined") {
+          window.location.href = "/auth/login";
+        }
+        return Promise.reject(err);
+      }
+
       console.log("🔐 Token expired, attempting refresh...", {
         status,
         data,
         originalRequest: originalRequest.url,
+        timeSinceLastRefresh: now - lastRefreshAttempt,
       });
 
       // If we're already refreshing, add to queue
@@ -93,9 +92,8 @@ API.interceptors.response.use(
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
-          .then((token) => {
+          .then(() => {
             console.log("✅ Got token from queue, retrying request...");
-            originalRequest.headers.Authorization = `Bearer ${token}`;
             return API(originalRequest);
           })
           .catch((error) => {
@@ -108,33 +106,29 @@ API.interceptors.response.use(
       console.log("🔄 Starting token refresh...");
       isRefreshing = true;
       originalRequest._retry = true;
+      lastRefreshAttempt = now;
 
       try {
-        const { accessToken } = await refreshTokenFn();
-        console.log(
-          "✅ Token refresh successful, updating cookies and retrying..."
-        );
-
-        // Update the access token in cookies
-        setCookie("accessToken", accessToken, {
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-        });
-
-        // Update the failed request's authorization header
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        await refreshTokenFn();
+        console.log("✅ Token refresh successful, retrying request...");
+        hasRefreshFailed = false; // Reset failure flag on success
 
         // Process the queue
-        processQueue(null, accessToken);
+        processQueue(null, "success");
 
         // Retry the original request
         return API(originalRequest);
-      } catch (refreshError) {
+      } catch (refreshError: any) {
         console.log("❌ Token refresh failed:", refreshError);
-        // Refresh failed, clear tokens and redirect to login
+        console.log("❌ Refresh error details:", {
+          message: refreshError?.message,
+          status: refreshError?.response?.status,
+          data: refreshError?.response?.data,
+        });
+        hasRefreshFailed = true; // Set flag to prevent immediate retry
+
+        // Process the queue
         processQueue(refreshError, null);
-        removeCookie("accessToken");
-        removeCookie("refreshToken");
 
         // Only redirect if we're in the browser
         if (typeof window !== "undefined") {
@@ -158,10 +152,17 @@ API.interceptors.response.use(
   }
 );
 
-API.interceptors.request.use((config) => {
-  const token = getCookie("accessToken");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
+// Function to reset the refresh failure flag
+export const resetRefreshFailureFlag = () => {
+  hasRefreshFailed = false;
+  lastRefreshAttempt = 0;
+  // console.log("🔄 Refresh failure flag reset");
+};
 
+// Expose globally for auth context to use
+if (typeof window !== "undefined") {
+  (window as any).__resetRefreshFlag = resetRefreshFailureFlag;
+}
+
+// No need for request interceptor since cookies are automatically sent
 export default API;

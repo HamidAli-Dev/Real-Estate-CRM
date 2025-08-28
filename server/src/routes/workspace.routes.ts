@@ -12,7 +12,7 @@ import {
   removeUserController,
   deleteWorkspaceController,
 } from "../controllers/workspace.controller";
-import { authenticate } from "../middlewares/isAuthenticated.middleware";
+import { authenticate } from "../middlewares/passportAuth.middleware";
 import { authorizeRoles } from "../middlewares/authorizeRoles.middleware";
 
 const workspaceRoutes = Router();
