@@ -69,6 +69,7 @@ export interface userWorkspaceType {
   id: string;
   role: string;
   workspace: workspaceType;
+  workspaceId: string;
   permissions?: rolePermissionType[];
 }
 
@@ -100,6 +101,126 @@ export interface inviteUserType {
 export interface updateUserRoleType {
   role: "Admin" | "Manager" | "Agent";
   permissions: string[];
+}
+
+// Lead and Pipeline Types
+export interface PipelineStage {
+  id: string;
+  name: string;
+  order: number;
+  color?: string;
+  workspaceId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  _count?: {
+    leads: number;
+    deals: number;
+  };
+}
+
+export interface Lead {
+  id: string;
+  name: string;
+  contactInfo: string;
+  phone?: string;
+  pipelineStageId: string;
+  assignedToId: string;
+  workspaceId: string;
+  notes?: string;
+  source?: "Website" | "Referral" | "Social" | "Cold";
+  priority?: "Hot" | "Warm" | "Cold";
+  budget?: number;
+  tags: string[];
+  location?: string;
+  avatar?: string;
+  isHot?: boolean;
+  position: number;
+  createdAt: Date;
+  updatedAt: Date;
+  lastContactedAt?: Date;
+  pipelineStage: PipelineStage;
+  assignedTo: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  properties: LeadProperty[];
+  activities: Activity[];
+}
+
+export interface LeadProperty {
+  id: string;
+  leadId: string;
+  propertyId: string;
+  property: {
+    id: string;
+    title: string;
+    description?: string;
+    price: number;
+    location: string;
+    city: string;
+    address: string;
+    images: PropertyImage[];
+  };
+}
+
+export interface PropertyImage {
+  id: string;
+  url: string;
+  alt?: string;
+  order: number;
+}
+
+export interface Activity {
+  id: string;
+  type: "Call" | "Email" | "Meeting" | "Visit";
+  scheduledAt: Date;
+  status: "Pending" | "Completed";
+  userId: string;
+  leadId: string;
+  workspaceId: string;
+  user: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface CreateLeadData {
+  name: string;
+  contactInfo: string;
+  phone?: string;
+  pipelineStageId: string;
+  assignedToId: string;
+  notes?: string;
+  source?: "Website" | "Referral" | "Social" | "Cold";
+  priority?: "Hot" | "Warm" | "Cold";
+  budget?: number;
+  tags?: string[];
+  propertyIds?: string[];
+}
+
+export interface UpdateLeadData {
+  name?: string;
+  contactInfo?: string;
+  phone?: string;
+  pipelineStageId?: string;
+  assignedToId?: string;
+  notes?: string;
+  source?: "Website" | "Referral" | "Social" | "Cold";
+  priority?: "Hot" | "Warm" | "Cold";
+  budget?: number;
+  tags?: string[];
+  propertyIds?: string[];
+}
+
+export interface CreatePipelineStageData {
+  name: string;
+  color?: string;
+}
+
+export interface UpdatePipelineStageData {
+  name?: string;
+  color?: string;
 }
 
 export interface permissionGroupType {

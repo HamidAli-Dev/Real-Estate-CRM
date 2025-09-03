@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 import { getUserWorkspacesQueryFn, getWorkspaceByIdQueryFn } from "@/lib/api";
-import { userWorkspaceType, workspaceType } from "@/types/api.types";
+import { userWorkspaceType } from "@/types/api.types";
 import { useAuthContext } from "./auth-provider";
 
 interface WorkspaceContextProps {
@@ -56,6 +56,7 @@ export const WorkspaceProvider = ({
     queryKey: ["workspace", workspaceId],
     queryFn: () => getWorkspaceByIdQueryFn(workspaceId!),
     enabled: !!workspaceId && !!user && !authLoading,
+    retry: false, // Don't retry if workspace not found
   });
 
   // Set current workspace when data changes
@@ -64,9 +65,33 @@ export const WorkspaceProvider = ({
       setCurrentWorkspace(currentWorkspaceData);
     } else if (!workspaceId) {
       // Clear current workspace if no workspaceId in URL
+
       setCurrentWorkspace(null);
+    } else if (currentWorkspaceError) {
+      console.warn("⚠️ Workspace error:", currentWorkspaceError);
+
+      if (workspacesData && workspacesData.length > 0) {
+        // If current workspace not found but user has other workspaces, redirect to first one
+        console.warn(
+          "⚠️ Workspace not found, redirecting to first available workspace"
+        );
+        const firstWorkspace = workspacesData[0];
+        router.replace(
+          `${pathname}?workspaceId=${firstWorkspace.workspace.id}`
+        );
+      } else {
+        console.warn("⚠️ No workspaces available");
+        setCurrentWorkspace(null);
+      }
     }
-  }, [currentWorkspaceData, workspaceId]);
+  }, [
+    currentWorkspaceData,
+    workspaceId,
+    currentWorkspaceError,
+    workspacesData,
+    router,
+    pathname,
+  ]);
 
   // Handle workspace selection logic
   useEffect(() => {
@@ -93,9 +118,16 @@ export const WorkspaceProvider = ({
 
   // Switch workspace function
   const switchWorkspace = (workspaceId: string) => {
-    router.push(`/dashboard?workspaceId=${workspaceId}`);
+    // Update URL with new workspace ID while preserving current path
+    const newUrl = `${pathname}?workspaceId=${workspaceId}`;
+    router.push(newUrl);
+
     // Clear current workspace data to force refetch
-    queryClient.removeQueries({ queryKey: ["workspace", workspaceId] });
+    queryClient.removeQueries({ queryKey: ["workspace"] });
+    queryClient.invalidateQueries({ queryKey: ["workspace", workspaceId] });
+
+    // Clear current workspace state immediately
+    setCurrentWorkspace(null);
   };
 
   const isLoading = workspacesLoading || currentWorkspaceLoading || authLoading;

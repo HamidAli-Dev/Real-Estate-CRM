@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { PrismaClient } from "@prisma/client";
 
 import { BadRequestException } from "../utils/AppError";
 import { compareValue, hashValue } from "../utils/bcrypt";
@@ -19,12 +20,13 @@ const generateAccessToken = (payload: JwtPayload) => {
   });
 };
 
-const generateRefreshToken = async (userId: string) => {
+const generateRefreshToken = async (userId: string, txClient?: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => {
   const token = crypto.randomBytes(40).toString("hex");
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
 
-  await db.refreshToken.create({
+  const dbClient = txClient || db;
+  await dbClient.refreshToken.create({
     data: {
       token,
       userId,
@@ -77,7 +79,7 @@ export const registerOwnerService = async ({
     );
 
     // Generate refresh token
-    const refreshToken = await generateRefreshToken(owner.id);
+    const refreshToken = await generateRefreshToken(owner.id, tx);
 
     return {
       owner: {

@@ -76,12 +76,27 @@ const WorkspaceSelector = () => {
 
   // Filter workspaces based on search query
   const filteredWorkspaces = useMemo(() => {
-    if (!searchQuery.trim()) return userWorkspaces;
-
-    return userWorkspaces.filter((workspace) =>
-      workspace.workspace.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [userWorkspaces, searchQuery]);
+    let filtered = userWorkspaces;
+    if (searchQuery.trim()) {
+      filtered = userWorkspaces.filter((workspace) =>
+        workspace.workspace.name
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
+      );
+    }
+    // Move current workspace to top
+    if (currentWorkspace) {
+      filtered = [
+        ...filtered.filter(
+          (w) => w.workspace.id === currentWorkspace.workspace.id
+        ),
+        ...filtered.filter(
+          (w) => w.workspace.id !== currentWorkspace.workspace.id
+        ),
+      ];
+    }
+    return filtered;
+  }, [userWorkspaces, searchQuery, currentWorkspace]);
 
   const { mutate: createWorkspace, isPending } = useMutation({
     mutationFn: createWorkspaceMutationFn,

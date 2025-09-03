@@ -12,6 +12,8 @@ import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import workspaceRoutes from "./routes/workspace.routes";
 import propertyRoutes from "./routes/property.routes";
+import leadRoutes from "./routes/lead.routes";
+import pipelineRoutes from "./routes/pipeline.routes";
 
 const app = express();
 
@@ -40,6 +42,8 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/workspace", workspaceRoutes);
 app.use("/api/v1/properties", propertyRoutes);
+app.use("/api/v1/leads", leadRoutes);
+app.use("/api/v1/pipeline", pipelineRoutes);
 
 app.use(errorHandler);
 

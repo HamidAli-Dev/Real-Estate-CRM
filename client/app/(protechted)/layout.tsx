@@ -8,6 +8,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <WorkspaceProvider>
       <SidebarProvider
+        className="overflow-x-hidden"
         style={
           {
             "--sidebar-width": "280px",
@@ -15,7 +16,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         }
       >
         <DashboardSidebar />
-        <main className="flex-1 w-full">{children}</main>
+        <main className="flex-1 w-full min-w-0 overflow-x-hidden">
+          {children}
+        </main>
       </SidebarProvider>
     </WorkspaceProvider>
   );

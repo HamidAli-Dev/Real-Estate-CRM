@@ -77,10 +77,6 @@ const PropertiesList = ({ onEditProperty }: PropertiesListProps) => {
 
   const confirmDeleteProperty = () => {
     if (propertyToDelete) {
-      console.log("🗑️ Confirming delete for property:", {
-        id: propertyToDelete.id,
-        title: propertyToDelete.title,
-      });
       deleteProperty(propertyToDelete.id);
       setIsDeleteDialogOpen(false);
       setPropertyToDelete(null);
