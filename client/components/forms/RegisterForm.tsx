@@ -65,9 +65,9 @@ const RegisterForm = () => {
 
         setTimeout(() => router.push("/auth/login"), 1000);
       },
-      onError: (err) => {
+      onError: (err: any) => {
         toast.error("Error", {
-          description: err.message,
+          description: err.data.message,
         });
       },
     });

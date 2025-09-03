@@ -80,9 +80,9 @@ const LoginForm = () => {
           router.push("/dashboard");
         }
       },
-      onError: (err) => {
+      onError: (err: any) => {
         toast.error("Error", {
-          description: err.message || "Something went wrong",
+          description: err?.data?.message || "Something went wrong",
         });
       },
     });

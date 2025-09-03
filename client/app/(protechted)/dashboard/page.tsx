@@ -5,11 +5,22 @@ import { Building2, Plus } from "lucide-react";
 import Overview from "../_components/Overview";
 import TopBar from "../_components/TopBar";
 import CreateWorkspaceDialog from "../_components/workspace/CreateWorkspaceDialog";
+import DashboardContent from "../_components/DashboardContent";
 import { useWorkspaceContext } from "@/context/workspace-provider";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const DashboardPage = () => {
   const { currentWorkspace, userWorkspaces, isLoading } = useWorkspaceContext();
+  const [selectedRole, setSelectedRole] = useState<
+    "Owner" | "Manager" | "Agent"
+  >("Owner");
 
   const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] =
     useState(false);
@@ -74,7 +85,35 @@ const DashboardPage = () => {
     <div>
       <TopBar />
       <div className="p-6">
-        <Overview />
+        {/* Role Selector for Demo */}
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-gray-700">
+              Demo: Switch Role:
+            </span>
+            <Select
+              value={selectedRole}
+              onValueChange={(value: "Owner" | "Manager" | "Agent") =>
+                setSelectedRole(value)
+              }
+            >
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Owner">Owner</SelectItem>
+                <SelectItem value="Manager">Manager</SelectItem>
+                <SelectItem value="Agent">Agent</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-xs text-gray-500">
+              (This is for demonstration purposes)
+            </span>
+          </div>
+        </div>
+
+        {/* Role-based Dashboard Content */}
+        <DashboardContent role={selectedRole} />
       </div>
     </div>
   );

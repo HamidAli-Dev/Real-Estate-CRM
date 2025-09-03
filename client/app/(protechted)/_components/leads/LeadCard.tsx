@@ -58,7 +58,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({ lead, onClick }) => {
   };
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200 border border-orange-200 bg-gradient-to-br from-yellow-50 to-orange-50 hover:border-orange-300">
+    <Card className="group hover:shadow-lg transition-all duration-200 border border-gray-200 hover:border-gray-300">
       <CardContent className="p-4 space-y-3 relative">
         {/* Priority Badge - Top Right */}
         <div className="absolute top-[-10px] right-2">
@@ -153,7 +153,7 @@ export const LeadCard: React.FC<LeadCardProps> = ({ lead, onClick }) => {
         {/* Source, Agent and Budget */}
         <div className="flex items-center justify-between text-xs text-gray-500">
           <span>Source: {lead.source || "Phone Call"}</span>
-          <span>Agent: {lead.assignedTo?.name || "Unassigned"}</span>
+          <span>Assigned to: {lead.assignedTo?.name || "Unassigned"}</span>
         </div>
         {lead.budget && (
           <div className="flex items-center space-x-2 text-sm font-semibold text-green-700">
