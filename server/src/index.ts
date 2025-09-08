@@ -7,6 +7,10 @@ import passport from "passport";
 import { HTTPSTATUS } from "./config/http.config";
 import { APP_CONFIG } from "./config/app.config";
 import { errorHandler } from "./middlewares/errorHandler.middleware";
+import {
+  securityHeaders,
+  apiRateLimit,
+} from "./middlewares/security.middleware";
 import passportConfig from "./config/passport.config";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
@@ -14,8 +18,13 @@ import workspaceRoutes from "./routes/workspace.routes";
 import propertyRoutes from "./routes/property.routes";
 import leadRoutes from "./routes/lead.routes";
 import pipelineRoutes from "./routes/pipeline.routes";
+import invitationRoutes from "./routes/invitation.routes";
 
 const app = express();
+
+// Security middleware
+app.use(securityHeaders);
+app.use(apiRateLimit);
 
 app.use(
   cors({
@@ -24,8 +33,8 @@ app.use(
   })
 );
 app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Initialize passport
 app.use(passport.initialize());
@@ -44,6 +53,7 @@ app.use("/api/v1/workspace", workspaceRoutes);
 app.use("/api/v1/properties", propertyRoutes);
 app.use("/api/v1/leads", leadRoutes);
 app.use("/api/v1/pipeline", pipelineRoutes);
+app.use("/api/v1/invitation", invitationRoutes);
 
 app.use(errorHandler);
 

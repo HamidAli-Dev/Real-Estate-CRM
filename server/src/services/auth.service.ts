@@ -20,7 +20,13 @@ const generateAccessToken = (payload: JwtPayload) => {
   });
 };
 
-const generateRefreshToken = async (userId: string, txClient?: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">) => {
+const generateRefreshToken = async (
+  userId: string,
+  txClient?: Omit<
+    PrismaClient,
+    "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+  >
+) => {
   const token = crypto.randomBytes(40).toString("hex");
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
@@ -112,6 +118,14 @@ export const loginService = async ({ email, password }: LoginInput) => {
   if (!user) {
     throw new BadRequestException(
       "Invalid email or password",
+      ErrorCode.AUTH_USER_NOT_FOUND
+    );
+  }
+
+  // Check if user has a password set
+  if (!user.password) {
+    throw new BadRequestException(
+      "Account setup required. Please complete your account setup first.",
       ErrorCode.AUTH_USER_NOT_FOUND
     );
   }

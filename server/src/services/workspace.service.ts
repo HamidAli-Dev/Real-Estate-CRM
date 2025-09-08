@@ -6,6 +6,13 @@ import {
   UpdateUserRoleInput,
 } from "../validation/workspace.validation";
 import { BadRequestException } from "../utils/AppError";
+import { sendInvitationEmail } from "./email.service";
+import {
+  generateInvitationToken,
+  generateInvitationLink,
+  getInvitationExpiryTime,
+} from "../utils/invitation-token";
+import { APP_CONFIG } from "../config/app.config";
 
 export const createWorkspaceService = async (
   data: CreateWorkspaceInput,
@@ -21,12 +28,13 @@ export const createWorkspaceService = async (
       },
     });
 
-    // Create user-workspace relationship with Owner role
+    // Create user-workspace relationship with Owner role and ACTIVE status
     const userWorkspace = await tx.userWorkspace.create({
       data: {
         userId,
         workspaceId: workspace.id,
         role: "Owner",
+        status: "ACTIVE", // Owner should be active immediately
       },
     });
 
@@ -154,6 +162,13 @@ export const getWorkspaceUsersService = async (
         },
       },
       permissions: true,
+      invitation: {
+        select: {
+          id: true,
+          status: true,
+          expiresAt: true,
+        },
+      },
     },
   });
 
@@ -171,6 +186,18 @@ export const inviteUserToWorkspaceService = async (
       workspaceId,
       userId,
     },
+    include: {
+      user: {
+        select: {
+          name: true,
+        },
+      },
+      workspace: {
+        select: {
+          name: true,
+        },
+      },
+    },
   });
 
   if (!userWorkspace) {
@@ -178,59 +205,159 @@ export const inviteUserToWorkspaceService = async (
   }
 
   // Only Owners and Admins can invite users
+  // TODO: Move these permissions to a middleware and pass during request
   if (!["Owner", "Admin"].includes(userWorkspace.role)) {
     throw new BadRequestException("You don't have permission to invite users");
   }
 
-  // Check if user already exists
-  let user = await db.user.findUnique({
-    where: { email: data.email },
+  // Check if there's already a pending invitation for this email in this workspace
+  const existingInvitation = await db.userInvitation.findFirst({
+    where: {
+      email: data.email,
+      workspaceId,
+      status: "PENDING",
+    },
   });
 
-  if (!user) {
-    // Create new user with temporary password
-    const tempPassword = Math.random().toString(36).slice(-8);
-    user = await db.user.create({
-      data: {
-        name: data.name,
-        email: data.email,
-        password: tempPassword, // In production, this should be hashed
-      },
-    });
+  if (existingInvitation) {
+    throw new BadRequestException(
+      "An invitation has already been sent to this email address"
+    );
   }
 
-  // Check if user is already in this workspace
+  // Check if user is already a member of this workspace (any status)
   const existingUserWorkspace = await db.userWorkspace.findFirst({
     where: {
       workspaceId,
-      userId: user.id,
+      user: {
+        email: data.email,
+      },
     },
   });
 
   if (existingUserWorkspace) {
-    throw new BadRequestException("User is already a member of this workspace");
+    if (existingUserWorkspace.status === "ACTIVE") {
+      throw new BadRequestException(
+        "User is already an active member of this workspace"
+      );
+    } else if (existingUserWorkspace.status === "PENDING") {
+      throw new BadRequestException(
+        "User already has a pending invitation for this workspace"
+      );
+    }
   }
 
-  // Add user to workspace with role and permissions
-  const newUserWorkspace = await db.userWorkspace.create({
-    data: {
-      userId: user.id,
-      workspaceId,
-      role: data.role,
+  // Create user, userWorkspace, permissions, and invitation in a transaction
+  const result = await db.$transaction(async (tx) => {
+    // Check if user already exists, if not create them
+    let user = await tx.user.findUnique({
+      where: { email: data.email },
+    });
+
+    if (!user) {
+      // Create new user without password (will be set when they accept invitation)
+      user = await tx.user.create({
+        data: {
+          name: data.name,
+          email: data.email,
+          // No password set - user will create one when accepting invitation
+        },
+      });
+    }
+
+    // Create UserWorkspace record with PENDING status
+    const userWorkspaceWithPendingInvitation = await tx.userWorkspace.create({
+      data: {
+        userId: user.id,
+        workspaceId,
+        role: data.role,
+        status: "PENDING",
+      },
+    });
+
+    // Create permissions for the user using the correct userWorkspaceId
+    const permissions = data.permissions.map((permission) => ({
+      userWorkspaceId: userWorkspaceWithPendingInvitation.id, // Use the newly created userWorkspace ID
+      permission: permission as any,
+    }));
+
+    await tx.rolePermission.createMany({
+      data: permissions,
+    });
+
+    // Generate invitation token and expiry time
+    const token = generateInvitationToken();
+    const expiresAt = getInvitationExpiryTime();
+
+    // Create invitation record linked to the UserWorkspace
+    const invitation = await tx.userInvitation.create({
+      data: {
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        permissions: data.permissions,
+        token,
+        expiresAt,
+        invitedById: userId,
+        workspaceId,
+        userWorkspaceId: userWorkspaceWithPendingInvitation.id, // Use the newly created userWorkspace ID
+      },
+    });
+
+    return { user, userWorkspaceWithPendingInvitation, invitation };
+  });
+
+  // Generate invitation link
+  const baseUrl = APP_CONFIG.FRONTEND_BASE_URL;
+  const invitationLink = generateInvitationLink(
+    baseUrl,
+    result.invitation.token
+  );
+
+  // Send invitation email
+  try {
+    await sendInvitationEmail(
+      data.email,
+      data.name,
+      userWorkspace.user.name,
+      userWorkspace.workspace.name,
+      data.role,
+      invitationLink
+    );
+  } catch (error) {
+    // If email fails, clean up the created records
+    await db.$transaction(async (tx) => {
+      // Delete the invitation
+      await tx.userInvitation.delete({
+        where: { id: result.invitation.id },
+      });
+
+      // Delete role permissions
+      await tx.rolePermission.deleteMany({
+        where: {
+          userWorkspaceId: result.userWorkspaceWithPendingInvitation.id,
+        },
+      });
+
+      // Delete the userWorkspace
+      await tx.userWorkspace.delete({
+        where: { id: result.userWorkspaceWithPendingInvitation.id },
+      });
+    });
+
+    throw new BadRequestException("Failed to send invitation email");
+  }
+
+  return {
+    message: "Invitation sent successfully",
+    invitation: {
+      id: result.invitation.id,
+      email: result.invitation.email,
+      name: result.invitation.name,
+      role: result.invitation.role,
+      expiresAt: result.invitation.expiresAt,
     },
-  });
-
-  // Create permissions for the user
-  const permissions = data.permissions.map((permission) => ({
-    userWorkspaceId: newUserWorkspace.id,
-    permission: permission as any, // Type assertion for enum
-  }));
-
-  await db.rolePermission.createMany({
-    data: permissions,
-  });
-
-  return { user, role: data.role, permissions: data.permissions };
+  };
 };
 
 export const updateUserRoleService = async (
@@ -337,11 +464,40 @@ export const removeUserFromWorkspaceService = async (
     );
   }
 
-  // Remove user from workspace
-  await db.userWorkspace.delete({
-    where: {
-      id: targetUserWorkspace.id,
-    },
+  // Get the user's email before deleting the UserWorkspace
+  const targetUser = await db.user.findUnique({
+    where: { id: targetUserId },
+    select: { email: true },
+  });
+
+  if (!targetUser) {
+    throw new BadRequestException("User not found");
+  }
+
+  // Remove user from workspace and clean up associated data in a transaction
+  await db.$transaction(async (tx) => {
+    // Delete any pending invitations for this user's email in this workspace
+    await tx.userInvitation.deleteMany({
+      where: {
+        email: targetUser.email,
+        workspaceId,
+        status: "PENDING",
+      },
+    });
+
+    // Delete role permissions for this user-workspace relationship
+    await tx.rolePermission.deleteMany({
+      where: {
+        userWorkspaceId: targetUserWorkspace.id,
+      },
+    });
+
+    // Delete the UserWorkspace record (this will cascade delete the linked invitation if any)
+    await tx.userWorkspace.delete({
+      where: {
+        id: targetUserWorkspace.id,
+      },
+    });
   });
 
   return { message: "User removed successfully" };
@@ -426,6 +582,11 @@ export const deleteWorkspaceService = async (
 
     // Delete all notifications associated with this workspace
     await tx.notification.deleteMany({
+      where: { workspaceId },
+    });
+
+    // Delete all invitations associated with this workspace
+    await tx.userInvitation.deleteMany({
       where: { workspaceId },
     });
 

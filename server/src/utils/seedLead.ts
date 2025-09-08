@@ -22,6 +22,7 @@ async function main() {
         create: {
           workspaceId: workspace.id,
           role: Role.Owner,
+          status: "ACTIVE", // Owner should be active immediately
         },
       },
     },

@@ -26,20 +26,22 @@ model Workspace {
   settings      WorkspaceSettings?
   subscription  Subscription?
   PipelineStage PipelineStage[]
+  invitations   UserInvitation[]
 }
 
 model User {
-  id       String @id @default(uuid())
+  id       String  @id @default(uuid())
   name     String
-  email    String @unique
-  password String
+  email    String  @unique
+  password String?
 
   workspaces    UserWorkspace[]
-  properties    Property[]      @relation("ListedBy")
-  leads         Lead[]          @relation("AssignedTo")
+  properties    Property[]       @relation("ListedBy")
+  leads         Lead[]           @relation("AssignedTo")
   activities    Activity[]
   notifications Notification[]
   RefreshToken  RefreshToken[]
+  invitations   UserInvitation[] @relation("InvitedBy")
 }
 
 model PipelineStage {
@@ -63,7 +65,9 @@ model UserWorkspace {
   workspace   Workspace        @relation(fields: [workspaceId], references: [id])
   workspaceId String
   role        Role
+  status      UserStatus       @default(PENDING)
   permissions RolePermission[] // Add permissions relationship
+  invitation  UserInvitation? // Link to invitation if user was invited
 
   @@unique([userId, workspaceId])
 }
@@ -75,6 +79,12 @@ enum Role {
   Agent
 }
 
+enum UserStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+}
+
 // New model for role permissions
 model RolePermission {
   id              String        @id @default(uuid())
@@ -84,6 +94,35 @@ model RolePermission {
   createdAt       DateTime      @default(now())
 
   @@unique([userWorkspaceId, permission])
+}
+
+// Model for user invitations
+model UserInvitation {
+  id              String           @id @default(uuid())
+  email           String
+  name            String
+  role            Role
+  permissions     String[] // Store permissions as array of strings
+  token           String           @unique
+  expiresAt       DateTime
+  status          InvitationStatus @default(PENDING)
+  userWorkspace   UserWorkspace?   @relation(fields: [userWorkspaceId], references: [id], onDelete: Cascade)
+  userWorkspaceId String?          @unique // Will be set when invitation is accepted
+  invitedBy       User             @relation("InvitedBy", fields: [invitedById], references: [id])
+  invitedById     String
+  workspace       Workspace        @relation(fields: [workspaceId], references: [id])
+  workspaceId     String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([email, workspaceId]) // One invitation per email per workspace
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
 }
 
 enum Permission {

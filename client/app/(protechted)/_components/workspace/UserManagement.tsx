@@ -259,16 +259,19 @@ const UserManagement = () => {
   // Invite user mutation
   const { mutate: inviteUser, isPending: isInviting } = useMutation({
     mutationFn: inviteUserMutationFn,
-    onSuccess: () => {
-      toast.success("User invited successfully!");
+    onSuccess: (data) => {
+      toast.success("Invitation sent successfully!", {
+        description: `An invitation email has been sent to ${data?.invitation.email}. The invitation will expire in 30 minutes.`,
+      });
       setIsInviteOpen(false);
       inviteForm.reset();
       refetchUsers();
     },
     onError: (error: any) => {
-      toast.error("Failed to invite user", {
+      toast.error("Failed to send invitation", {
         description: error?.data?.message || error?.message,
       });
+      console.log("😪Error inviting user:", error);
     },
   });
 
@@ -581,6 +584,7 @@ const UserManagement = () => {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Permissions</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -600,6 +604,39 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{workspaceUser.role}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Badge
+                          variant={
+                            workspaceUser.status === "ACTIVE"
+                              ? "default"
+                              : "secondary"
+                          }
+                          className={
+                            workspaceUser.status === "ACTIVE"
+                              ? "bg-green-100 text-green-800"
+                              : workspaceUser.status === "PENDING"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-gray-100 text-gray-800"
+                          }
+                        >
+                          {workspaceUser.status === "ACTIVE"
+                            ? "Active"
+                            : workspaceUser.status === "PENDING"
+                            ? "Pending"
+                            : "Inactive"}
+                        </Badge>
+                        {workspaceUser.status === "PENDING" &&
+                          workspaceUser.invitation && (
+                            <div className="text-xs text-gray-500">
+                              Invited{" "}
+                              {new Date(
+                                workspaceUser.invitation.expiresAt
+                              ).toLocaleDateString()}
+                            </div>
+                          )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">

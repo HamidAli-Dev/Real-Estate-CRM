@@ -7,6 +7,13 @@ const appConfig = () => ({
   JWT_EXPIRATION: getEnv("JWT_EXPIRATION", "1h"),
   DATABASE_URL: getEnv("DATABASE_URL", ""),
   CORS_ORIGIN: getEnv("CORS_ORIGIN", "http://localhost:3000"),
+  SMTP_HOST: getEnv("SMTP_HOST", "smtp.gmail.com"),
+  SMTP_PORT: getEnv("SMTP_PORT", "587"),
+  SMTP_SECURE: getEnv("SMTP_SECURE", "false"), // true for 465, false for other ports
+  SMTP_USER: getEnv("SMTP_USER", ""),
+  SMTP_PASS: getEnv("SMTP_PASS", ""),
+  FRONTEND_BASE_URL: getEnv("FRONTEND_BASE_URL", "http://localhost:3000"),
+  SMTP_FROM: getEnv("EMAIL_FROM", "noreply@example.com"),
 
   // Cloudinary
   CLOUDINARY_CLOUD_NAME: getEnv("CLOUDINARY_CLOUD_NAME", ""),

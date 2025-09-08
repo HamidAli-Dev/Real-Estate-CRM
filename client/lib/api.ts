@@ -149,28 +149,35 @@ export const getWorkspaceUsersQueryFn = async (workspaceId: string) => {
   }
 };
 
-export const inviteUserMutationFn = async (data: {
-  workspaceId: string;
+interface inviteUserType {
   name: string;
   email: string;
   role: "Admin" | "Manager" | "Agent";
+  workspaceId: string;
   permissions: string[];
-}) => {
+}
+
+interface inviteUserResponseType {
+  message: string;
+  invitation: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    expiresAt: Date;
+  };
+}
+
+export const inviteUserMutationFn = async (
+  data: inviteUserType
+): Promise<inviteUserResponseType> => {
   const { workspaceId, ...inviteData } = data;
   const response = await API.post(
     `/workspace/${workspaceId}/users/invite`,
     inviteData
   );
 
-  // Since axios interceptor returns res.data, response is already the data object
-  const responseData = response as any;
-
-  // Check for the actual response structure: { message: string, data: any }
-  if (responseData && responseData.data) {
-    return responseData.data; // Return the actual response data
-  } else {
-    throw new Error(responseData?.message || "Failed to invite user");
-  }
+  return response.data as inviteUserResponseType;
 };
 
 export const updateUserRoleMutationFn = async (data: {
@@ -415,4 +422,51 @@ export const getPropertyCategoriesQueryFn = async (workspaceId: string) => {
   } else {
     throw new Error(responseData?.message || "Failed to fetch categories");
   }
+};
+
+interface getInvitationDetailsResponseType {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  permissions: string[];
+  workspace: {
+    id: string;
+    name: string;
+  };
+  invitedBy: {
+    name: string;
+  };
+  expiresAt: Date;
+  requiresPassword: boolean;
+}
+// Invitation API functions
+export const getInvitationDetailsQueryFn = async (
+  token: string
+): Promise<getInvitationDetailsResponseType> => {
+  const response = await API.get(`/invitation/${token}`);
+  return response.data;
+};
+
+interface acceptInvitationResponseType {
+  message: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    workspace: {
+      id: string;
+      name: string;
+    };
+  };
+  requiresPassword: boolean;
+}
+
+export const acceptInvitationMutationFn = async (data: {
+  token: string;
+  password?: string;
+}): Promise<acceptInvitationResponseType> => {
+  const response = await API.post("/invitation/accept", data);
+  return response.data;
 };
