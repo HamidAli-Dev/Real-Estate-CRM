@@ -155,18 +155,26 @@ const DashboardSidebar = () => {
                 <Link key={menuItem.title} href={menuItem.href}>
                   <div
                     className={cn(
-                      "group flex items-center justify-between px-3 py-3 rounded-xl transition-all duration-200 cursor-pointer",
+                      "group flex items-center justify-between px-3 py-3 transition-all duration-200 cursor-pointer relative",
                       isActive
-                        ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/25"
-                        : "text-gray-700 hover:bg-gray-100/80 hover:text-gray-900 hover:shadow-sm"
+                        ? "bg-white text-gray-900 rounded-r-2xl shadow-lg"
+                        : "text-gray-700 hover:bg-gray-100/80 hover:text-gray-900 hover:shadow-sm rounded-xl"
                     )}
+                    style={
+                      isActive
+                        ? {
+                            marginRight: "-16px",
+                            paddingRight: "32px",
+                          }
+                        : {}
+                    }
                   >
                     <div className="flex items-center space-x-3">
                       <div
                         className={cn(
                           "p-2 rounded-lg transition-colors duration-200",
                           isActive
-                            ? "bg-white/20 text-white"
+                            ? "bg-gray-100 text-gray-700"
                             : "bg-gray-100 text-gray-600 group-hover:bg-gray-200 group-hover:text-gray-700"
                         )}
                       >
@@ -180,7 +188,7 @@ const DashboardSidebar = () => {
                           className={cn(
                             "text-xs transition-colors duration-200",
                             isActive
-                              ? "text-white/80"
+                              ? "text-gray-600"
                               : "text-gray-500 group-hover:text-gray-600"
                           )}
                         >
@@ -189,7 +197,7 @@ const DashboardSidebar = () => {
                       </div>
                     </div>
                     {isActive && (
-                      <ChevronRight size={14} className="text-white/80" />
+                      <ChevronRight size={14} className="text-gray-600" />
                     )}
                   </div>
                 </Link>
@@ -210,18 +218,26 @@ const DashboardSidebar = () => {
                 <Link key={menuItem.title} href={menuItem.href}>
                   <div
                     className={cn(
-                      "group flex items-center justify-between px-3 py-3 rounded-xl transition-all duration-200 cursor-pointer",
+                      "group flex items-center justify-between px-3 py-3 transition-all duration-200 cursor-pointer relative",
                       isActive
-                        ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/25"
-                        : "text-gray-700 hover:bg-gray-100/80 hover:text-gray-900 hover:shadow-sm"
+                        ? "bg-white text-gray-900 rounded-r-2xl shadow-lg"
+                        : "text-gray-700 hover:bg-gray-100/80 hover:text-gray-900 hover:shadow-sm rounded-xl"
                     )}
+                    style={
+                      isActive
+                        ? {
+                            marginRight: "-16px",
+                            paddingRight: "32px",
+                          }
+                        : {}
+                    }
                   >
                     <div className="flex items-center space-x-3">
                       <div
                         className={cn(
                           "p-2 rounded-lg transition-colors duration-200",
                           isActive
-                            ? "bg-white/20 text-white"
+                            ? "bg-gray-100 text-gray-700"
                             : "bg-gray-100 text-gray-600 group-hover:bg-gray-200 group-hover:text-gray-700"
                         )}
                       >
@@ -235,7 +251,7 @@ const DashboardSidebar = () => {
                           className={cn(
                             "text-xs transition-colors duration-200",
                             isActive
-                              ? "text-white/80"
+                              ? "text-gray-600"
                               : "text-gray-500 group-hover:text-gray-600"
                           )}
                         >
@@ -244,7 +260,7 @@ const DashboardSidebar = () => {
                       </div>
                     </div>
                     {isActive && (
-                      <ChevronRight size={14} className="text-white/80" />
+                      <ChevronRight size={14} className="text-gray-600" />
                     )}
                   </div>
                 </Link>

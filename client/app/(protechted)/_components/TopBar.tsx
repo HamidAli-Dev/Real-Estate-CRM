@@ -109,58 +109,63 @@ const TopBar = () => {
   };
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
+    <div className="fixed top-0 left-0 right-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
       <div className="px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Left Section - Brand & Sidebar Trigger */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-6">
             {!open && (
-              <SidebarTrigger className="!text-gray-600 !p-2 !bg-gray-100 hover:!bg-gray-200 rounded-md" />
+              <SidebarTrigger className="!text-gray-600 !p-2 !bg-gray-100 hover:!bg-gray-200 rounded-lg transition-colors duration-200" />
             )}
 
-            {/* Logo & Brand */}
-            {currentWorkspace && (
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-white" />
+            {/* Personalized Greeting */}
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <span className="text-white font-semibold text-lg">
+                    {user?.name?.charAt(0).toUpperCase()}
+                  </span>
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">
-                    {currentWorkspace.workspace.name}
-                  </h1>
-                  <p className="text-xs text-gray-500">Real Estate CRM</p>
-                </div>
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
               </div>
-            )}
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">
+                  Good Morning, {user?.name?.split(" ")[0]}! 👋
+                </h1>
+                <p className="text-sm text-gray-500 font-medium">
+                  Welcome back to your dashboard
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Center Section - Search */}
-          <div className="hidden lg:flex flex-1 max-w-md mx-8">
+          <div className="hidden lg:flex flex-1 max-w-lg mx-8">
             <form onSubmit={handleSearch} className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <Input
                 type="text"
                 placeholder="Search properties, leads, clients..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                className="pl-12 pr-4 py-3 w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl bg-gray-50/50 hover:bg-white transition-all duration-200 shadow-sm"
               />
             </form>
           </div>
 
           {/* Right Section - Actions & User */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             {/* Theme Toggle */}
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+              className="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-200"
             >
               {isDarkMode ? (
-                <Sun className="w-4 h-4" />
+                <Sun className="w-5 h-5" />
               ) : (
-                <Moon className="w-4 h-4" />
+                <Moon className="w-5 h-5" />
               )}
             </Button>
 
@@ -170,11 +175,11 @@ const TopBar = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  className="relative p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-200"
                 >
-                  <Bell className="w-4 h-4" />
+                  <Bell className="w-5 h-5" />
                   {notifications.filter((n) => n.unread).length > 0 && (
-                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
                       {notifications.filter((n) => n.unread).length}
                     </Badge>
                   )}
@@ -236,10 +241,10 @@ const TopBar = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+              className="relative p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-200"
             >
-              <MessageSquare className="w-4 h-4" />
-              <Badge className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+              <MessageSquare className="w-5 h-5" />
+              <Badge className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                 3
               </Badge>
             </Button>
@@ -250,17 +255,19 @@ const TopBar = () => {
               onOpenChange={setIsOpenDropdown}
             >
               <DropdownMenuTrigger asChild className="cursor-pointer">
-                <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                  <Avatar className="w-8 h-8">
-                    <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-sm font-medium">
+                <div className="flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-100 transition-all duration-200 border border-gray-200/50">
+                  <Avatar className="w-10 h-10">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-sm font-semibold">
                       {user?.name?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden md:block text-left">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-semibold text-gray-900">
                       {user?.name}
                     </p>
-                    <p className="text-xs text-gray-500">{user?.email}</p>
+                    <p className="text-xs text-gray-500 font-medium">
+                      {user?.email}
+                    </p>
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-400" />
                 </div>
@@ -305,13 +312,13 @@ const TopBar = () => {
         {/* Mobile Search Bar */}
         <div className="lg:hidden mt-4">
           <form onSubmit={handleSearch} className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <Input
               type="text"
               placeholder="Search properties, leads, clients..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+              className="pl-12 pr-4 py-3 w-full border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl bg-gray-50/50 hover:bg-white transition-all duration-200 shadow-sm"
             />
           </form>
         </div>
