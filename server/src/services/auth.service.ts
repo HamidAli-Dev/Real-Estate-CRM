@@ -11,7 +11,19 @@ import { ErrorCode } from "../enums/error-code.enum";
 export interface JwtPayload {
   userId: string;
   workspaceId?: string;
-  role?: string;
+  role?:
+    | {
+        id: string;
+        workspaceId: string;
+        name: string;
+        isSystem: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+      }
+    | {
+        name: string;
+        isSystem: true;
+      };
 }
 
 const generateAccessToken = (payload: JwtPayload) => {
@@ -111,7 +123,11 @@ export const loginService = async ({ email, password }: LoginInput) => {
   const user = await db.user.findUnique({
     where: { email },
     include: {
-      workspaces: true,
+      workspaces: {
+        include: {
+          role: true,
+        },
+      },
     },
   });
 
@@ -139,12 +155,21 @@ export const loginService = async ({ email, password }: LoginInput) => {
     );
   }
 
-  // Check if user has any workspaces
-  const userWorkspace = user.workspaces[0];
+  // Check if user has any workspaces (including PENDING status)
+  const userWorkspace =
+    user.workspaces.find((ws) => ws.status === "ACTIVE") || user.workspaces[0];
 
   // If user has no workspaces, they get implicit Owner role for workspace creation
-  const userRole = userWorkspace?.role || "Owner";
+  const userRole = userWorkspace?.role || { name: "Owner", isSystem: true };
   const userWorkspaceId = userWorkspace?.workspaceId || null;
+
+  // If user has PENDING workspace and mustUpdatePassword is true, activate the workspace
+  if (user.mustUpdatePassword && userWorkspace?.status === "PENDING") {
+    await db.userWorkspace.update({
+      where: { id: userWorkspace.id },
+      data: { status: "ACTIVE" },
+    });
+  }
 
   const accessToken = generateAccessToken({
     userId: user.id,
@@ -161,8 +186,61 @@ export const loginService = async ({ email, password }: LoginInput) => {
       email: user.email,
       role: userRole,
       workspaceId: userWorkspaceId,
+      mustUpdatePassword: user.mustUpdatePassword,
     },
     accessToken,
     refreshToken,
+  };
+};
+
+export const changePasswordService = async (
+  userId: string,
+  currentPassword: string,
+  newPassword: string
+) => {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new BadRequestException(
+      "User not found",
+      ErrorCode.AUTH_USER_NOT_FOUND
+    );
+  }
+
+  if (!user.password) {
+    throw new BadRequestException(
+      "No password set for this account",
+      ErrorCode.AUTH_USER_NOT_FOUND
+    );
+  }
+
+  // Verify current password
+  const isCurrentPasswordValid = await compareValue(
+    currentPassword,
+    user.password
+  );
+  if (!isCurrentPasswordValid) {
+    throw new BadRequestException(
+      "Current password is incorrect",
+      ErrorCode.AUTH_USER_NOT_FOUND
+    );
+  }
+
+  // Hash new password
+  const hashedNewPassword = await hashValue(newPassword);
+
+  // Update password and clear mustUpdatePassword flag
+  await db.user.update({
+    where: { id: userId },
+    data: {
+      password: hashedNewPassword,
+      mustUpdatePassword: false,
+    },
+  });
+
+  return {
+    message: "Password changed successfully",
   };
 };

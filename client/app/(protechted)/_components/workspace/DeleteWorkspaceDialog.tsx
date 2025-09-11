@@ -98,7 +98,7 @@ const DeleteWorkspaceDialog = ({
   };
 
   // Only show for Owners
-  if (user?.role !== "Owner") {
+  if (user?.role?.name !== "Owner") {
     return null;
   }
 

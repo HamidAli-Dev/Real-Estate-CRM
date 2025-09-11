@@ -23,14 +23,14 @@ export const inviteUserSchema = z.object({
     .min(2, { message: "Name must be at least 2 characters" })
     .max(100, { message: "Name cannot exceed 100 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
-  role: z.enum(["Admin", "Manager", "Agent"]),
-  permissions: z
-    .array(z.string())
-    .min(1, { message: "At least one permission is required" }),
+  roleId: z.string().min(1, { message: "Role is required" }),
+  tempPassword: z
+    .string()
+    .min(8, { message: "Temporary password must be at least 8 characters" }),
 });
 
 export const updateUserRoleSchema = z.object({
-  role: z.enum(["Admin", "Manager", "Agent"]),
+  roleId: z.string().min(1, { message: "Role is required" }),
   permissions: z
     .array(z.string())
     .min(1, { message: "At least one permission is required" }),

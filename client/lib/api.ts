@@ -152,9 +152,8 @@ export const getWorkspaceUsersQueryFn = async (workspaceId: string) => {
 interface inviteUserType {
   name: string;
   email: string;
-  role: "Admin" | "Manager" | "Agent";
+  roleId: string;
   workspaceId: string;
-  permissions: string[];
 }
 
 interface inviteUserResponseType {
@@ -183,7 +182,7 @@ export const inviteUserMutationFn = async (
 export const updateUserRoleMutationFn = async (data: {
   workspaceId: string;
   userId: string;
-  role: "Admin" | "Manager" | "Agent";
+  roleId: string;
   permissions: string[];
 }) => {
   const { workspaceId, userId, ...updateData } = data;
@@ -424,49 +423,54 @@ export const getPropertyCategoriesQueryFn = async (workspaceId: string) => {
   }
 };
 
-interface getInvitationDetailsResponseType {
-  id: string;
-  email: string;
+// Role And Permission API functions
+
+// Get workspace roles
+export const getWorkspaceRolesQueryFn = async (workspaceId: string) => {
+  const response = await API.get(`/roles/workspace/${workspaceId}`);
+
+  // Since axios interceptor returns res.data, response is already the data object
+  const responseData = response as any;
+
+  // Check for the actual response structure: { message: string, data: any }
+  if (responseData && responseData.data) {
+    return responseData.data; // Return the actual roles data
+  } else {
+    throw new Error(responseData?.message || "Failed to fetch workspace roles");
+  }
+};
+
+// Get all permissions
+export const getPermissionsQueryFn = async () => {
+  const response = await API.get("/roles/permissions");
+
+  // Since axios interceptor returns res.data, response is already the data object
+  const responseData = response as any;
+
+  // Check for the actual response structure: { message: string, data: any }
+  if (responseData && responseData.data) {
+    return responseData.data; // Return the actual permissions data
+  } else {
+    throw new Error(responseData?.message || "Failed to fetch permissions");
+  }
+};
+
+// Create role
+export const createRoleMutationFn = async (data: {
   name: string;
-  role: string;
   permissions: string[];
-  workspace: {
-    id: string;
-    name: string;
-  };
-  invitedBy: {
-    name: string;
-  };
-  expiresAt: Date;
-  requiresPassword: boolean;
-}
-// Invitation API functions
-export const getInvitationDetailsQueryFn = async (
-  token: string
-): Promise<getInvitationDetailsResponseType> => {
-  const response = await API.get(`/invitation/${token}`);
+  workspaceId: string;
+}) => {
+  const { workspaceId, ...roleData } = data;
+  const response = await API.post(`/roles/workspace/${workspaceId}`, roleData);
   return response.data;
 };
 
-interface acceptInvitationResponseType {
-  message: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-    workspace: {
-      id: string;
-      name: string;
-    };
-  };
-  requiresPassword: boolean;
-}
-
-export const acceptInvitationMutationFn = async (data: {
-  token: string;
-  password?: string;
-}): Promise<acceptInvitationResponseType> => {
-  const response = await API.post("/invitation/accept", data);
+// Change password
+export const changePasswordMutationFn = async (data: {
+  currentPassword: string;
+  newPassword: string;
+}) => {
+  const response = await API.post("/auth/change-password", data);
   return response.data;
 };

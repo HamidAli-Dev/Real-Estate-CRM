@@ -5,14 +5,15 @@ import {
   InviteUserInput,
   UpdateUserRoleInput,
 } from "../validation/workspace.validation";
+// Updated types for RBAC system
 import { BadRequestException } from "../utils/AppError";
-import { sendInvitationEmail } from "./email.service";
 import {
   generateInvitationToken,
   generateInvitationLink,
   getInvitationExpiryTime,
 } from "../utils/invitation-token";
 import { APP_CONFIG } from "../config/app.config";
+import { hashValue } from "../utils/bcrypt";
 
 export const createWorkspaceService = async (
   data: CreateWorkspaceInput,
@@ -28,13 +29,62 @@ export const createWorkspaceService = async (
       },
     });
 
+    // Create the Owner role for this workspace
+    const ownerRole = await tx.role.create({
+      data: {
+        name: "Owner",
+        workspaceId: workspace.id,
+        isSystem: true,
+      },
+    });
+
+    // Get all permissions to assign to Owner role
+    let allPermissions = await tx.permission.findMany();
+
+    // If no permissions exist, create default permissions
+    if (allPermissions.length === 0) {
+      const defaultPermissions = [
+        { name: "VIEW_PROPERTIES", group: "Properties" },
+        { name: "CREATE_PROPERTIES", group: "Properties" },
+        { name: "EDIT_PROPERTIES", group: "Properties" },
+        { name: "DELETE_PROPERTIES", group: "Properties" },
+        { name: "VIEW_LEADS", group: "Leads" },
+        { name: "CREATE_LEADS", group: "Leads" },
+        { name: "EDIT_LEADS", group: "Leads" },
+        { name: "DELETE_LEADS", group: "Leads" },
+        { name: "VIEW_USERS", group: "Users" },
+        { name: "INVITE_USERS", group: "Users" },
+        { name: "EDIT_USER_ROLES", group: "Users" },
+        { name: "REMOVE_USERS", group: "Users" },
+        { name: "VIEW_SETTINGS", group: "Settings" },
+        { name: "EDIT_SETTINGS", group: "Settings" },
+        { name: "VIEW_ANALYTICS", group: "Analytics" },
+      ];
+
+      await tx.permission.createMany({
+        data: defaultPermissions,
+      });
+
+      allPermissions = await tx.permission.findMany();
+    }
+
+    // Assign all permissions to Owner role
+    if (allPermissions.length > 0) {
+      await tx.rolePermission.createMany({
+        data: allPermissions.map((permission) => ({
+          roleId: ownerRole.id,
+          permissionId: permission.id,
+        })),
+      });
+    }
+
     // Create user-workspace relationship with Owner role and ACTIVE status
     const userWorkspace = await tx.userWorkspace.create({
       data: {
         userId,
         workspaceId: workspace.id,
-        role: "Owner",
-        status: "ACTIVE", // Owner should be active immediately
+        roleId: ownerRole.id,
+        status: "ACTIVE",
       },
     });
 
@@ -63,7 +113,15 @@ export const getUserWorkspacesService = async (userId: string) => {
           settings: true,
         },
       },
-      permissions: true,
+      role: {
+        include: {
+          rolePermissions: {
+            include: {
+              permission: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -83,16 +141,12 @@ export const editWorkspaceService = async (
     },
     include: {
       workspace: true,
+      role: true,
     },
   });
 
   if (!userWorkspace) {
     throw new BadRequestException("You don't have access to this workspace");
-  }
-
-  // Only Owners can edit workspaces
-  if (userWorkspace.role !== "Owner") {
-    throw new BadRequestException("Only workspace owners can edit workspaces");
   }
 
   // Update workspace
@@ -121,7 +175,15 @@ export const getWorkspaceByIdService = async (
           settings: true,
         },
       },
-      permissions: true,
+      role: {
+        include: {
+          rolePermissions: {
+            include: {
+              permission: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -161,7 +223,15 @@ export const getWorkspaceUsersService = async (
           email: true,
         },
       },
-      permissions: true,
+      role: {
+        include: {
+          rolePermissions: {
+            include: {
+              permission: true,
+            },
+          },
+        },
+      },
       invitation: {
         select: {
           id: true,
@@ -197,17 +267,12 @@ export const inviteUserToWorkspaceService = async (
           name: true,
         },
       },
+      role: true,
     },
   });
 
   if (!userWorkspace) {
     throw new BadRequestException("You don't have access to this workspace");
-  }
-
-  // Only Owners and Admins can invite users
-  // TODO: Move these permissions to a middleware and pass during request
-  if (!["Owner", "Admin"].includes(userWorkspace.role)) {
-    throw new BadRequestException("You don't have permission to invite users");
   }
 
   // Check if there's already a pending invitation for this email in this workspace
@@ -247,7 +312,11 @@ export const inviteUserToWorkspaceService = async (
     }
   }
 
-  // Create user, userWorkspace, permissions, and invitation in a transaction
+  // Use the temporary password provided by frontend
+  const temporaryPassword = data.tempPassword;
+  const hashedTemporaryPassword = await hashValue(temporaryPassword);
+
+  // Create user, userWorkspace, role assignment, and invitation in a transaction
   const result = await db.$transaction(async (tx) => {
     // Check if user already exists, if not create them
     let user = await tx.user.findUnique({
@@ -255,34 +324,46 @@ export const inviteUserToWorkspaceService = async (
     });
 
     if (!user) {
-      // Create new user without password (will be set when they accept invitation)
+      // Create new user with temporary password
       user = await tx.user.create({
         data: {
           name: data.name,
           email: data.email,
-          // No password set - user will create one when accepting invitation
+          password: hashedTemporaryPassword,
+          mustUpdatePassword: true, // Mark that user must update password on first login
+        },
+      });
+    } else {
+      // Update existing user with temporary password
+      user = await tx.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashedTemporaryPassword,
+          mustUpdatePassword: true,
         },
       });
     }
 
-    // Create UserWorkspace record with PENDING status
+    // Get the role to assign
+    const role = await tx.role.findFirst({
+      where: {
+        id: data.roleId,
+        workspaceId,
+      },
+    });
+
+    if (!role) {
+      throw new BadRequestException("Role not found in workspace");
+    }
+
+    // Create UserWorkspace record with PENDING status and assigned role
     const userWorkspaceWithPendingInvitation = await tx.userWorkspace.create({
       data: {
         userId: user.id,
         workspaceId,
-        role: data.role,
+        roleId: role.id,
         status: "PENDING",
       },
-    });
-
-    // Create permissions for the user using the correct userWorkspaceId
-    const permissions = data.permissions.map((permission) => ({
-      userWorkspaceId: userWorkspaceWithPendingInvitation.id, // Use the newly created userWorkspace ID
-      permission: permission as any,
-    }));
-
-    await tx.rolePermission.createMany({
-      data: permissions,
     });
 
     // Generate invitation token and expiry time
@@ -294,69 +375,34 @@ export const inviteUserToWorkspaceService = async (
       data: {
         email: data.email,
         name: data.name,
-        role: data.role,
-        permissions: data.permissions,
         token,
         expiresAt,
         invitedById: userId,
         workspaceId,
-        userWorkspaceId: userWorkspaceWithPendingInvitation.id, // Use the newly created userWorkspace ID
+        roleId: role.id,
+        userWorkspaceId: userWorkspaceWithPendingInvitation.id,
       },
     });
 
-    return { user, userWorkspaceWithPendingInvitation, invitation };
+    return {
+      user,
+      userWorkspaceWithPendingInvitation,
+      invitation,
+      role,
+      temporaryPassword,
+    };
   });
 
-  // Generate invitation link
-  const baseUrl = APP_CONFIG.FRONTEND_BASE_URL;
-  const invitationLink = generateInvitationLink(
-    baseUrl,
-    result.invitation.token
-  );
-
-  // Send invitation email
-  try {
-    await sendInvitationEmail(
-      data.email,
-      data.name,
-      userWorkspace.user.name,
-      userWorkspace.workspace.name,
-      data.role,
-      invitationLink
-    );
-  } catch (error) {
-    // If email fails, clean up the created records
-    await db.$transaction(async (tx) => {
-      // Delete the invitation
-      await tx.userInvitation.delete({
-        where: { id: result.invitation.id },
-      });
-
-      // Delete role permissions
-      await tx.rolePermission.deleteMany({
-        where: {
-          userWorkspaceId: result.userWorkspaceWithPendingInvitation.id,
-        },
-      });
-
-      // Delete the userWorkspace
-      await tx.userWorkspace.delete({
-        where: { id: result.userWorkspaceWithPendingInvitation.id },
-      });
-    });
-
-    throw new BadRequestException("Failed to send invitation email");
-  }
-
   return {
-    message: "Invitation sent successfully",
+    message: "User invited successfully",
     invitation: {
       id: result.invitation.id,
       email: result.invitation.email,
       name: result.invitation.name,
-      role: result.invitation.role,
+      role: result.role.name,
       expiresAt: result.invitation.expiresAt,
     },
+    temporaryPassword: result.temporaryPassword,
   };
 };
 
@@ -372,17 +418,13 @@ export const updateUserRoleService = async (
       workspaceId,
       userId,
     },
+    include: {
+      role: true,
+    },
   });
 
   if (!userWorkspace) {
     throw new BadRequestException("You don't have access to this workspace");
-  }
-
-  // Only Owners and Admins can update user roles
-  if (!["Owner", "Admin"].includes(userWorkspace.role)) {
-    throw new BadRequestException(
-      "You don't have permission to update user roles"
-    );
   }
 
   // Check if target user exists in workspace
@@ -397,21 +439,33 @@ export const updateUserRoleService = async (
     throw new BadRequestException("User not found in workspace");
   }
 
-  // Update user role and permissions
+  // Get the new role
+  const newRole = await db.role.findFirst({
+    where: {
+      id: data.roleId,
+      workspaceId,
+    },
+  });
+
+  if (!newRole) {
+    throw new BadRequestException("Role not found in workspace");
+  }
+
+  // Update user role
   await db.userWorkspace.update({
     where: { id: targetUserWorkspace.id },
-    data: { role: data.role },
+    data: { roleId: newRole.id },
   });
 
-  // Remove existing permissions
+  // Remove existing role permissions
   await db.rolePermission.deleteMany({
-    where: { userWorkspaceId: targetUserWorkspace.id },
+    where: { roleId: targetUserWorkspace.roleId },
   });
 
-  // Create new permissions
+  // Create new role permissions
   const permissions = data.permissions.map((permission) => ({
-    userWorkspaceId: targetUserWorkspace.id,
-    permission: permission as any, // Type assertion for enum
+    roleId: newRole.id,
+    permissionId: permission,
   }));
 
   await db.rolePermission.createMany({
@@ -432,17 +486,13 @@ export const removeUserFromWorkspaceService = async (
       workspaceId,
       userId: currentUserId,
     },
+    include: {
+      role: true,
+    },
   });
 
   if (!currentUserWorkspace) {
     throw new BadRequestException("You don't have access to this workspace");
-  }
-
-  // Only Owners and Admins can remove users
-  if (!["Owner", "Admin"].includes(currentUserWorkspace.role)) {
-    throw new BadRequestException(
-      "Only workspace owners and admins can remove users"
-    );
   }
 
   // Check if target user exists in this workspace
@@ -458,7 +508,10 @@ export const removeUserFromWorkspaceService = async (
   }
 
   // Owners cannot remove themselves
-  if (targetUserId === currentUserId && currentUserWorkspace.role === "Owner") {
+  if (
+    targetUserId === currentUserId &&
+    currentUserWorkspace.role.name === "Owner"
+  ) {
     throw new BadRequestException(
       "Owners cannot remove themselves from the workspace"
     );
@@ -485,10 +538,10 @@ export const removeUserFromWorkspaceService = async (
       },
     });
 
-    // Delete role permissions for this user-workspace relationship
+    // Delete role permissions for this user's role
     await tx.rolePermission.deleteMany({
       where: {
-        userWorkspaceId: targetUserWorkspace.id,
+        roleId: targetUserWorkspace.roleId,
       },
     });
 
@@ -515,18 +568,12 @@ export const deleteWorkspaceService = async (
     },
     include: {
       workspace: true,
+      role: true,
     },
   });
 
   if (!userWorkspace) {
     throw new BadRequestException("You don't have access to this workspace");
-  }
-
-  // Only Owners can delete workspaces
-  if (userWorkspace.role !== "Owner") {
-    throw new BadRequestException(
-      "Only workspace owners can delete workspaces"
-    );
   }
 
   // Delete workspace and all associated data in a transaction
@@ -536,14 +583,32 @@ export const deleteWorkspaceService = async (
       where: { workspaceId },
     });
 
-    // Delete all role permissions associated with this workspace
-    await tx.rolePermission.deleteMany({
-      where: {
-        userWorkspace: {
-          workspaceId,
-        },
-      },
+    // Delete all roles and their permissions associated with this workspace
+    const workspaceRoles = await tx.role.findMany({
+      where: { workspaceId },
+      select: { id: true },
     });
+
+    const roleIds = workspaceRoles.map((role) => role.id);
+
+    if (roleIds.length > 0) {
+      await tx.rolePermission.deleteMany({
+        where: {
+          roleId: {
+            in: roleIds,
+          },
+        },
+      });
+
+      // Delete the roles themselves
+      await tx.role.deleteMany({
+        where: {
+          id: {
+            in: roleIds,
+          },
+        },
+      });
+    }
 
     // Delete workspace settings
     await tx.workspaceSettings.deleteMany({

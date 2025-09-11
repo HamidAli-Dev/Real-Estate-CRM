@@ -42,7 +42,7 @@ const WorkspaceSettings = () => {
   });
 
   const workspaceUsers = usersData || [];
-  const isOwner = user?.role === "Owner";
+  const isOwner = user?.role?.name === "Owner";
   const canEdit = isOwner;
 
   if (!currentWorkspace) {
@@ -103,7 +103,7 @@ const WorkspaceSettings = () => {
                     Role
                   </label>
                   <Badge variant="secondary" className="text-sm">
-                    {currentWorkspace.role}
+                    {currentWorkspace.role.name}
                   </Badge>
                 </div>
               </div>

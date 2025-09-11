@@ -8,12 +8,11 @@ import {
   getPropertyCategoriesController,
 } from "../controllers/property.controller";
 import { authenticate } from "../middlewares/passportAuth.middleware";
-import { authorizeRoles } from "../middlewares/authorizeRoles.middleware";
+import { checkPermission } from "../middlewares/permission.middleware";
 import {
   uploadPropertyImages,
   handleUploadError,
 } from "../middlewares/upload.middleware";
-import { Role } from "@prisma/client";
 
 const router = Router();
 
@@ -21,36 +20,44 @@ const router = Router();
 router.use(authenticate);
 
 // Get properties (all authenticated users can view)
-router.get("/", getPropertiesController);
+router.get("/", checkPermission("VIEW_PROPERTIES"), getPropertiesController);
 
 // Get property categories (all authenticated users can view) - MUST come before :id route
-router.get("/categories", getPropertyCategoriesController);
+router.get(
+  "/categories",
+  checkPermission("VIEW_PROPERTIES"),
+  getPropertyCategoriesController
+);
 
 // Get property by ID (all authenticated users can view)
-router.get("/:id", getPropertyByIdController);
+router.get(
+  "/:id",
+  checkPermission("VIEW_PROPERTIES"),
+  getPropertyByIdController
+);
 
-// Create property (Owner, Admin, Manager can create)
+// Create property
 router.post(
   "/",
   uploadPropertyImages,
   handleUploadError,
-  authorizeRoles(Role.Owner, Role.Admin, Role.Manager),
+  checkPermission("CREATE_PROPERTIES"),
   createPropertyController
 );
 
-// Update property (Owner, Admin, Manager can update)
+// Update property
 router.put(
   "/:id",
   uploadPropertyImages,
   handleUploadError,
-  authorizeRoles(Role.Owner, Role.Admin, Role.Manager),
+  checkPermission("EDIT_PROPERTIES"),
   updatePropertyController
 );
 
-// Delete property (Owner, Admin can delete)
+// Delete property
 router.delete(
   "/:id",
-  authorizeRoles(Role.Owner, Role.Admin),
+  checkPermission("DELETE_PROPERTIES"),
   deletePropertyController
 );
 

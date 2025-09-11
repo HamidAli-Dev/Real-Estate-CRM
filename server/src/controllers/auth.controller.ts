@@ -7,7 +7,11 @@ import {
   loginSchema,
   registerOwnerSchema,
 } from "../validation/auth.validation";
-import { loginService, registerOwnerService } from "../services/auth.service";
+import {
+  loginService,
+  registerOwnerService,
+  changePasswordService,
+} from "../services/auth.service";
 import { BadRequestException, UnauthorizedException } from "../utils/AppError";
 import { db } from "../utils/db";
 import { APP_CONFIG } from "../config/app.config";
@@ -44,19 +48,19 @@ export const refreshAccessToken = asyncHandler(
       throw new BadRequestException("Refresh token is required");
     }
 
-    console.log("✅ Refresh token found, length:", refreshToken.length);
-
     const storedToken = await db.refreshToken.findUnique({
       where: { token: refreshToken },
-      include: { user: { include: { workspaces: true } } },
-    });
-
-    console.log("🔍 Stored token lookup result:", {
-      found: !!storedToken,
-      expired: storedToken ? storedToken.expiresAt < new Date() : null,
-      userId: storedToken?.user?.id,
-      userEmail: storedToken?.user?.email,
-      workspacesCount: storedToken?.user?.workspaces?.length || 0,
+      include: {
+        user: {
+          include: {
+            workspaces: {
+              include: {
+                role: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!storedToken || storedToken.expiresAt < new Date()) {
@@ -67,14 +71,8 @@ export const refreshAccessToken = asyncHandler(
     const userWorkspace = storedToken.user.workspaces[0];
 
     // If user has no workspaces, they get implicit Owner role for workspace creation
-    const userRole = userWorkspace?.role || "Owner";
+    const userRole = userWorkspace?.role || { name: "Owner", isSystem: true };
     const userWorkspaceId = userWorkspace?.workspaceId || null;
-
-    console.log("👤 User workspace info:", {
-      userRole,
-      userWorkspaceId,
-      hasWorkspace: !!userWorkspace,
-    });
 
     const newAccessToken = jwt.sign(
       {
@@ -162,5 +160,24 @@ export const logoutAllDevices = asyncHandler(
     return res.status(HTTPSTATUS.OK).json({
       message: "Logged out from all devices successfully",
     });
+  }
+);
+
+export const changePassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      throw new UnauthorizedException("User not authenticated");
+    }
+
+    const result = await changePasswordService(
+      userId,
+      currentPassword,
+      newPassword
+    );
+
+    return res.status(HTTPSTATUS.OK).json(result);
   }
 );

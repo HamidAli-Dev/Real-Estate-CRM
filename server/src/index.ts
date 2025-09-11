@@ -18,7 +18,7 @@ import workspaceRoutes from "./routes/workspace.routes";
 import propertyRoutes from "./routes/property.routes";
 import leadRoutes from "./routes/lead.routes";
 import pipelineRoutes from "./routes/pipeline.routes";
-import invitationRoutes from "./routes/invitation.routes";
+import roleRoutes from "./routes/role.routes";
 
 const app = express();
 
@@ -53,7 +53,7 @@ app.use("/api/v1/workspace", workspaceRoutes);
 app.use("/api/v1/properties", propertyRoutes);
 app.use("/api/v1/leads", leadRoutes);
 app.use("/api/v1/pipeline", pipelineRoutes);
-app.use("/api/v1/invitation", invitationRoutes);
+app.use("/api/v1/roles", roleRoutes);
 
 app.use(errorHandler);
 

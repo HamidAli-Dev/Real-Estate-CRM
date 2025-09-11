@@ -19,10 +19,18 @@ export interface userType {
   id: string;
   name: string;
   email: string;
-  role?: string;
+  role?: {
+    id: string;
+    name: string;
+    workspaceId: string;
+    isSystem: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  };
   workspaceId?: string;
   workspaceName?: string;
   workspaceDomain?: string;
+  mustUpdatePassword?: boolean;
 }
 
 export interface workspaceType {
@@ -67,7 +75,22 @@ export interface editWorkspaceResponseType {
 
 export interface userWorkspaceType {
   id: string;
-  role: string;
+  role: {
+    id: string;
+    name: string;
+    workspaceId: string;
+    isSystem: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    rolePermissions?: {
+      id: string;
+      permission: {
+        id: string;
+        name: string;
+        group?: string;
+      };
+    }[];
+  };
   workspace: workspaceType;
   workspaceId: string;
   permissions?: rolePermissionType[];
@@ -81,7 +104,22 @@ export interface rolePermissionType {
 
 export interface workspaceUserType {
   id: string;
-  role: string;
+  role: {
+    id: string;
+    name: string;
+    workspaceId: string;
+    isSystem: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    rolePermissions?: {
+      id: string;
+      permission: {
+        id: string;
+        name: string;
+        group?: string;
+      };
+    }[];
+  };
   user: {
     id: string;
     name: string;
@@ -94,12 +132,12 @@ export interface inviteUserType {
   workspaceId: string;
   name: string;
   email: string;
-  role: "Admin" | "Manager" | "Agent";
-  permissions: string[];
+  roleId: string;
+  tempPassword: string;
 }
 
 export interface updateUserRoleType {
-  role: "Admin" | "Manager" | "Agent";
+  roleId: string;
   permissions: string[];
 }
 

@@ -215,16 +215,40 @@ export const updatePropertyService = asyncHandler(async (req, res) => {
 
   // Check if user is the owner or has admin rights
   if (existingProperty.listedById !== req.user.id) {
-    // Check if user is admin in the workspace
+    // Check if user has permission to edit properties in the workspace
     const userWorkspace = await db.userWorkspace.findFirst({
       where: {
         userId: req.user.id,
         workspaceId: existingProperty.workspaceId,
-        role: { in: ["Owner", "Admin"] },
+      },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
       },
     });
 
     if (!userWorkspace) {
+      throw new AppError(
+        "You don't have permission to edit this property",
+        403
+      );
+    }
+
+    // Check if user has EDIT_PROPERTIES permission or is Owner
+    const hasPermission =
+      (userWorkspace.role.isSystem && userWorkspace.role.name === "Owner") ||
+      userWorkspace.role.rolePermissions.some(
+        (rp) => rp.permission.name === "EDIT_PROPERTIES"
+      );
+
+    if (!hasPermission) {
       throw new AppError(
         "You don't have permission to edit this property",
         403
@@ -365,11 +389,35 @@ export const deletePropertyService = asyncHandler(async (req, res) => {
       where: {
         userId: req.user.id,
         workspaceId: property.workspaceId,
-        role: { in: ["Owner", "Admin"] },
+      },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
       },
     });
 
     if (!userWorkspace) {
+      throw new AppError(
+        "You don't have permission to delete this property",
+        403
+      );
+    }
+
+    // Check if user has DELETE_PROPERTIES permission or is Owner
+    const hasPermission =
+      (userWorkspace.role.isSystem && userWorkspace.role.name === "Owner") ||
+      userWorkspace.role.rolePermissions.some(
+        (rp) => rp.permission.name === "DELETE_PROPERTIES"
+      );
+
+    if (!hasPermission) {
       throw new AppError(
         "You don't have permission to delete this property",
         403

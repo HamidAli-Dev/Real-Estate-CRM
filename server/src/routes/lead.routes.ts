@@ -1,6 +1,4 @@
 import { Router } from "express";
-import { Role } from "@prisma/client";
-
 import {
   createLeadController,
   getLeadsByWorkspaceController,
@@ -12,66 +10,66 @@ import {
   updateLeadPositionController,
 } from "../controllers/lead.controller";
 import { authenticate } from "../middlewares/passportAuth.middleware";
-import { authorizeRoles } from "../middlewares/authorizeRoles.middleware";
+import { checkPermission } from "../middlewares/permission.middleware";
 
 const leadRoutes = Router();
 
 // All lead routes require authentication
 leadRoutes.use(authenticate);
 
-// Create lead - accessible to all workspace members
+// Create lead
 leadRoutes.post(
   "/:workspaceId",
-  authorizeRoles(Role.Owner, Role.Admin, Role.Manager, Role.Agent),
+  checkPermission("CREATE_LEADS"),
   createLeadController
 );
 
-// Get leads by workspace - accessible to all workspace members
+// Get leads by workspace
 leadRoutes.get(
   "/:workspaceId",
-  authorizeRoles(Role.Owner, Role.Admin, Role.Manager, Role.Agent),
+  checkPermission("VIEW_LEADS"),
   getLeadsByWorkspaceController
 );
 
-// Get leads by stage - accessible to all workspace members
+// Get leads by stage
 leadRoutes.get(
   "/:workspaceId/stage/:stageId",
-  authorizeRoles(Role.Owner, Role.Admin, Role.Manager, Role.Agent),
+  checkPermission("VIEW_LEADS"),
   getLeadsByStageController
 );
 
-// Get specific lead by ID - accessible to all workspace members
+// Get specific lead by ID
 leadRoutes.get(
   "/:workspaceId/lead/:leadId",
-  authorizeRoles(Role.Owner, Role.Admin, Role.Manager, Role.Agent),
+  checkPermission("VIEW_LEADS"),
   getLeadByIdController
 );
 
-// Update lead - accessible to assigned agent and above
+// Update lead
 leadRoutes.put(
   "/:workspaceId/lead/:leadId",
-  authorizeRoles(Role.Owner, Role.Admin, Role.Manager, Role.Agent),
+  checkPermission("EDIT_LEADS"),
   updateLeadController
 );
 
-// Update lead stage - accessible to assigned agent and above
+// Update lead stage
 leadRoutes.patch(
   "/:workspaceId/lead/:leadId/stage",
-  authorizeRoles(Role.Owner, Role.Admin, Role.Manager, Role.Agent),
+  checkPermission("EDIT_LEADS"),
   updateLeadStageController
 );
 
-// Update lead position within stage - accessible to assigned agent and above
+// Update lead position within stage
 leadRoutes.patch(
   "/:workspaceId/lead/:leadId/position",
-  authorizeRoles(Role.Owner, Role.Admin, Role.Manager, Role.Agent),
+  checkPermission("EDIT_LEADS"),
   updateLeadPositionController
 );
 
-// Delete lead - only Owners and Admins
+// Delete lead
 leadRoutes.delete(
   "/:workspaceId/lead/:leadId",
-  authorizeRoles(Role.Owner, Role.Admin),
+  checkPermission("DELETE_LEADS"),
   deleteLeadController
 );
 

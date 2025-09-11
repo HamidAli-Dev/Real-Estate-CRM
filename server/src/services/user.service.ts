@@ -1,7 +1,7 @@
 import { db } from "../utils/db";
 
 export const getCurrentUserService = async (userId: string) => {
-  // Get user with their workspace role information
+  // Get user basic information
   const user = await db.user.findUnique({
     where: {
       id: userId,
@@ -10,70 +10,87 @@ export const getCurrentUserService = async (userId: string) => {
       id: true,
       name: true,
       email: true,
-      workspaces: {
+      mustUpdatePassword: true,
+    },
+  });
+
+  if (!user) {
+    return { user: null };
+  }
+
+  // Get user's workspace information through UserWorkspace table
+  const userWorkspaces = await db.userWorkspace.findMany({
+    where: { userId },
+    include: {
+      role: {
         select: {
-          role: true,
-          workspace: {
-            select: {
-              id: true,
-              name: true,
-              domain: true,
-            },
-          },
+          id: true,
+          name: true,
+          isSystem: true,
+        },
+      },
+      workspace: {
+        select: {
+          id: true,
+          name: true,
         },
       },
     },
   });
 
-  // Fallback: If no workspaces found, check directly in UserWorkspace table
-  if (!user?.workspaces || user.workspaces.length === 0) {
-    const userWorkspace = await db.userWorkspace.findFirst({
-      where: { userId },
-      select: {
-        role: true,
-        workspace: {
-          select: {
-            id: true,
-            name: true,
-            domain: true,
-          },
-        },
+  // If user has workspaces, get the primary role and workspace info
+  if (userWorkspaces.length > 0) {
+    const primaryWorkspace = userWorkspaces[0];
+
+    const result = {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: primaryWorkspace.role,
+        workspaceId: primaryWorkspace.workspace.id,
+        workspaceName: primaryWorkspace.workspace.name,
+        workspaceDomain: null, // Workspace model doesn't have domain property
+        mustUpdatePassword: user.mustUpdatePassword,
       },
-    });
+    };
 
-    console.log("🔍 Direct UserWorkspace query result:", userWorkspace);
+    console.log("🔍 getCurrentUserService - User data:", result.user);
+    console.log(
+      "🔍 getCurrentUserService - mustUpdatePassword:",
+      user.mustUpdatePassword
+    );
 
-    if (userWorkspace) {
-      const result = {
-        user: {
-          id: user?.id,
-          name: user?.name,
-          email: user?.email,
-          role: userWorkspace.role,
-          workspaceId: userWorkspace.workspace.id,
-          workspaceName: userWorkspace.workspace.name,
-          workspaceDomain: userWorkspace.workspace.domain,
-        },
-      };
-
-      return result;
-    }
+    return result;
   }
 
-  // Extract the primary role and workspace info
-  const primaryWorkspace = user?.workspaces?.[0];
-
+  // If user has no workspaces, they get implicit Owner role for workspace creation
+  // This matches the logic in passport.config.ts
   const result = {
     user: {
-      id: user?.id,
-      name: user?.name,
-      email: user?.email,
-      role: primaryWorkspace?.role || null,
-      workspaceId: primaryWorkspace?.workspace?.id || null,
-      workspaceName: primaryWorkspace?.workspace?.name || null,
-      workspaceDomain: primaryWorkspace?.workspace?.domain || null,
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: {
+        id: "implicit-owner",
+        name: "Owner",
+        isSystem: true,
+      },
+      workspaceId: null,
+      workspaceName: null,
+      workspaceDomain: null,
+      mustUpdatePassword: user.mustUpdatePassword,
     },
   };
+
+  console.log(
+    "🔍 getCurrentUserService (no workspaces) - User data:",
+    result.user
+  );
+  console.log(
+    "🔍 getCurrentUserService (no workspaces) - mustUpdatePassword:",
+    user.mustUpdatePassword
+  );
 
   return result;
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus,
   Users,
@@ -10,7 +10,7 @@ import {
   Loader,
   AlertTriangle,
 } from "lucide-react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,7 +30,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
@@ -55,192 +54,46 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { useWorkspaceContext } from "@/context/workspace-provider";
 import { useAuthContext } from "@/context/auth-provider";
 import {
   getWorkspaceUsersQueryFn,
-  inviteUserMutationFn,
   updateUserRoleMutationFn,
   removeUserMutationFn,
+  getWorkspaceRolesQueryFn,
+  getPermissionsQueryFn,
 } from "@/lib/api";
-import {
-  inviteUserType,
-  updateUserRoleType,
-  permissionGroupType,
-} from "@/types/api.types";
-
-const inviteUserSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  role: z.enum(["Admin", "Manager", "Agent"]),
-  permissions: z
-    .array(z.string())
-    .min(1, "At least one permission is required"),
-});
+import { usePermission } from "@/hooks/usePermission";
+import { updateUserRoleType, permissionGroupType } from "@/types/api.types";
+import { UserInvitationModal } from "@/components/forms/UserInvitationModal";
+import { RoleCreationModal } from "@/components/forms/RoleCreationModal";
 
 const updateUserRoleSchema = z.object({
-  role: z.enum(["Admin", "Manager", "Agent"]),
+  roleId: z.string().min(1, "Please select a role"),
   permissions: z
     .array(z.string())
     .min(1, "At least one permission is required"),
 });
 
-// Permission groups for better organization
-const permissionGroups: permissionGroupType[] = [
-  {
-    group: "Properties",
-    permissions: [
-      {
-        value: "VIEW_PROPERTIES",
-        label: "View Properties",
-        description: "Can view property listings",
-      },
-      {
-        value: "CREATE_PROPERTIES",
-        label: "Create Properties",
-        description: "Can create new properties",
-      },
-      {
-        value: "EDIT_PROPERTIES",
-        label: "Edit Properties",
-        description: "Can modify existing properties",
-      },
-      {
-        value: "DELETE_PROPERTIES",
-        label: "Delete Properties",
-        description: "Can remove properties",
-      },
-    ],
-  },
-  {
-    group: "Leads",
-    permissions: [
-      {
-        value: "VIEW_LEADS",
-        label: "View Leads",
-        description: "Can view lead information",
-      },
-      {
-        value: "CREATE_LEADS",
-        label: "Create Leads",
-        description: "Can create new leads",
-      },
-      {
-        value: "EDIT_LEADS",
-        label: "Edit Leads",
-        description: "Can modify lead details",
-      },
-      {
-        value: "DELETE_LEADS",
-        label: "Delete Leads",
-        description: "Can remove leads",
-      },
-    ],
-  },
-  {
-    group: "Deals",
-    permissions: [
-      {
-        value: "VIEW_DEALS",
-        label: "View Deals",
-        description: "Can view deal information",
-      },
-      {
-        value: "CREATE_DEALS",
-        label: "Create Deals",
-        description: "Can create new deals",
-      },
-      {
-        value: "EDIT_DEALS",
-        label: "Edit Deals",
-        description: "Can modify deal details",
-      },
-      {
-        value: "DELETE_DEALS",
-        label: "Delete Deals",
-        description: "Can remove deals",
-      },
-    ],
-  },
-  {
-    group: "User Management",
-    permissions: [
-      {
-        value: "VIEW_USERS",
-        label: "View Users",
-        description: "Can see other users in workspace",
-      },
-      {
-        value: "INVITE_USERS",
-        label: "Invite Users",
-        description: "Can invite new users",
-      },
-      {
-        value: "EDIT_USER_ROLES",
-        label: "Edit User Roles",
-        description: "Can modify user roles and permissions",
-      },
-      {
-        value: "REMOVE_USERS",
-        label: "Remove Users",
-        description: "Can remove users from workspace",
-      },
-    ],
-  },
-  {
-    group: "Workspace",
-    permissions: [
-      {
-        value: "VIEW_SETTINGS",
-        label: "View Settings",
-        description: "Can view workspace settings",
-      },
-      {
-        value: "EDIT_SETTINGS",
-        label: "Edit Settings",
-        description: "Can modify workspace settings",
-      },
-      {
-        value: "VIEW_ANALYTICS",
-        label: "View Analytics",
-        description: "Can access analytics and reports",
-      },
-      {
-        value: "EXPORT_REPORTS",
-        label: "Export Reports",
-        description: "Can export data and reports",
-      },
-    ],
-  },
-];
-
 const UserManagement = () => {
-  const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const { currentWorkspace } = useWorkspaceContext();
+  const { currentWorkspace, userWorkspaces } = useWorkspaceContext();
   const { user } = useAuthContext();
+  const { can } = usePermission();
+  const queryClient = useQueryClient();
 
-  const inviteForm = useForm<{
-    name: string;
-    email: string;
-    role: "Admin" | "Manager" | "Agent";
-    permissions: string[];
-  }>({
-    resolver: zodResolver(inviteUserSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      role: "Agent",
-      permissions: [],
-    },
-  });
-
-  const editForm = useForm<updateUserRoleType>({
+  const editForm = useForm<z.infer<typeof updateUserRoleSchema>>({
     resolver: zodResolver(updateUserRoleSchema),
     defaultValues: {
-      role: "Agent",
+      roleId: "",
       permissions: [],
     },
   });
@@ -254,26 +107,70 @@ const UserManagement = () => {
     queryKey: ["workspaceUsers", currentWorkspace?.workspace.id],
     queryFn: () => getWorkspaceUsersQueryFn(currentWorkspace!.workspace.id),
     enabled: !!currentWorkspace?.workspace.id,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    staleTime: 0, // Always consider data stale
+    gcTime: 0, // Don't cache the data
   });
 
-  // Invite user mutation
-  const { mutate: inviteUser, isPending: isInviting } = useMutation({
-    mutationFn: inviteUserMutationFn,
-    onSuccess: (data) => {
-      toast.success("Invitation sent successfully!", {
-        description: `An invitation email has been sent to ${data?.invitation.email}. The invitation will expire in 30 minutes.`,
-      });
-      setIsInviteOpen(false);
-      inviteForm.reset();
-      refetchUsers();
+  // Get workspace roles
+  const { data: rolesData, isLoading: rolesLoading } = useQuery({
+    queryFn: () => {
+      return getWorkspaceRolesQueryFn(currentWorkspace!.workspace.id);
     },
-    onError: (error: any) => {
-      toast.error("Failed to send invitation", {
-        description: error?.data?.message || error?.message,
-      });
-      console.log("😪Error inviting user:", error);
-    },
+    queryKey: ["workspaceRoles", currentWorkspace?.workspace.id],
+    enabled: !!currentWorkspace?.workspace.id,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    staleTime: 0, // Always consider data stale
+    gcTime: 0, // Don't cache the data
   });
+
+  // Get permissions
+  const { data: permissionsData } = useQuery({
+    queryKey: ["permissions"],
+    queryFn: () => getPermissionsQueryFn(),
+  });
+
+  // Extract data
+  const workspaceUsers = usersData || [];
+  const roles = rolesData || [];
+
+  // Clear queries when workspace changes to prevent cross-workspace data
+  useEffect(() => {
+    if (currentWorkspace) {
+      // Invalidate all workspace-specific queries to force fresh data
+      queryClient.invalidateQueries({
+        queryKey: ["workspaceRoles"],
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: ["workspaceUsers"],
+      });
+
+      // Remove stale cached data for other workspaces
+      queryClient.removeQueries({
+        queryKey: ["workspaceRoles"],
+        predicate: (query) => {
+          const queryKey = query.queryKey as string[];
+          return queryKey[1]
+            ? queryKey[1] !== currentWorkspace.workspace.id
+            : false;
+        },
+      });
+
+      queryClient.removeQueries({
+        queryKey: ["workspaceUsers"],
+        predicate: (query) => {
+          const queryKey = query.queryKey as string[];
+          return queryKey[1]
+            ? queryKey[1] !== currentWorkspace.workspace.id
+            : false;
+        },
+      });
+    }
+  }, [currentWorkspace, queryClient]);
+  const permissionGroups = permissionsData?.data || [];
 
   // Update user role mutation
   const { mutate: updateUserRole, isPending: isUpdating } = useMutation({
@@ -281,8 +178,11 @@ const UserManagement = () => {
     onSuccess: () => {
       toast.success("User role updated successfully!");
       setEditingUser(null);
-      editForm.reset();
       refetchUsers();
+      // Also invalidate roles query to update role user counts
+      queryClient.invalidateQueries({
+        queryKey: ["workspaceRoles", currentWorkspace?.workspace.id],
+      });
     },
     onError: (error: any) => {
       toast.error("Failed to update user role", {
@@ -297,6 +197,10 @@ const UserManagement = () => {
     onSuccess: () => {
       toast.success("User removed successfully!");
       refetchUsers();
+      // Also invalidate roles query to update role user counts
+      queryClient.invalidateQueries({
+        queryKey: ["workspaceRoles", currentWorkspace?.workspace.id],
+      });
     },
     onError: (error: any) => {
       toast.error("Failed to remove user", {
@@ -305,27 +209,22 @@ const UserManagement = () => {
     },
   });
 
-  const handleInviteSubmit = (values: {
-    name: string;
-    email: string;
-    role: "Admin" | "Manager" | "Agent";
-    permissions: string[];
-  }) => {
-    if (!currentWorkspace) return;
-
-    inviteUser({
-      workspaceId: currentWorkspace.workspace.id,
-      ...values,
-    });
-  };
-
-  const handleEditSubmit = (values: updateUserRoleType) => {
+  const handleEditSubmit = (values: z.infer<typeof updateUserRoleSchema>) => {
     if (!currentWorkspace || !editingUser) return;
 
     updateUserRole({
       workspaceId: currentWorkspace.workspace.id,
       userId: editingUser.user.id,
       ...values,
+    });
+  };
+
+  const openEditDialog = (workspaceUser: any) => {
+    setEditingUser(workspaceUser);
+    editForm.reset({
+      roleId: workspaceUser.role.id,
+      permissions:
+        workspaceUser.permissions?.map((p: any) => p.permission.name) || [],
     });
   };
 
@@ -338,35 +237,6 @@ const UserManagement = () => {
     });
   };
 
-  const openEditDialog = (user: any) => {
-    setEditingUser(user);
-    editForm.reset({
-      role: user.role,
-      permissions: user.permissions.map((p: any) => p.permission),
-    });
-  };
-
-  const canManageUsers = user?.role === "Owner" || user?.role === "Admin";
-  const workspaceUsers = usersData || [];
-
-  if (!canManageUsers) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Shield className="w-5 h-5" />
-            <span>Access Denied</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-600">
-            You don't have permission to manage users in this workspace.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -378,199 +248,42 @@ const UserManagement = () => {
           </p>
         </div>
 
-        <AlertDialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-          <AlertDialogTrigger asChild>
-            <Button className="flex items-center space-x-2">
-              <Plus className="w-4 h-4" />
-              <span>Add New User</span>
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <AlertDialogHeader>
-              <AlertDialogTitle>Add New User</AlertDialogTitle>
-              <AlertDialogDescription>
-                Add a new user to your workspace and assign their role and
-                permissions
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-
-            <div className="py-4">
-              <Form {...inviteForm}>
-                <form
-                  onSubmit={inviteForm.handleSubmit(handleInviteSubmit)}
-                  className="space-y-6"
-                >
-                  {/* Basic Info */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={inviteForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name (Role Name)</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="John Doe"
-                              disabled={isInviting}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={inviteForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email Address</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              type="email"
-                              placeholder="john@example.com"
-                              disabled={isInviting}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {/* Role Selection */}
-                  <FormField
-                    control={inviteForm.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Role</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a role" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Admin">
-                              Admin - Full access to workspace
-                            </SelectItem>
-                            <SelectItem value="Manager">
-                              Manager - Manage properties and leads
-                            </SelectItem>
-                            <SelectItem value="Agent">
-                              Agent - Basic access to assigned tasks
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Permissions */}
-                  <div>
-                    <FormLabel className="text-base">Permissions</FormLabel>
-                    <div className="mt-3 space-y-4">
-                      {permissionGroups.map((group) => (
-                        <div
-                          key={group.group}
-                          className="border rounded-lg p-4"
-                        >
-                          <h4 className="font-medium text-gray-900 mb-3">
-                            {group.group}
-                          </h4>
-                          <div className="grid grid-cols-2 gap-3">
-                            {group.permissions.map((permission) => (
-                              <FormField
-                                key={permission.value}
-                                control={inviteForm.control}
-                                name="permissions"
-                                render={({ field }) => (
-                                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(
-                                          permission.value
-                                        )}
-                                        onCheckedChange={(checked) => {
-                                          const currentPermissions =
-                                            field.value || [];
-                                          if (checked) {
-                                            field.onChange([
-                                              ...currentPermissions,
-                                              permission.value,
-                                            ]);
-                                          } else {
-                                            field.onChange(
-                                              currentPermissions.filter(
-                                                (p) => p !== permission.value
-                                              )
-                                            );
-                                          }
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <div className="space-y-1 leading-none">
-                                      <FormLabel className="text-sm font-medium">
-                                        {permission.label}
-                                      </FormLabel>
-                                      <p className="text-xs text-gray-500">
-                                        {permission.description}
-                                      </p>
-                                    </div>
-                                  </FormItem>
-                                )}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <FormMessage>
-                      {inviteForm.formState.errors.permissions?.message}
-                    </FormMessage>
-                  </div>
-                </form>
-              </Form>
-            </div>
-
-            <AlertDialogFooter>
-              <AlertDialogCancel
-                onClick={() => setIsInviteOpen(false)}
-                disabled={isInviting}
-              >
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={inviteForm.handleSubmit(handleInviteSubmit)}
-                disabled={!inviteForm.formState.isValid || isInviting}
-              >
-                {isInviting ? (
-                  <>
-                    <Loader className="w-4 h-4 mr-2 animate-spin" />
-                    Inviting...
-                  </>
-                ) : (
-                  "Invite User"
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex gap-2">
+          {can?.createRoles?.() && (
+            <RoleCreationModal
+              onRoleCreated={() => {
+                refetchUsers();
+                queryClient.invalidateQueries({
+                  queryKey: ["workspaceRoles", currentWorkspace?.workspace.id],
+                });
+              }}
+            />
+          )}
+          {can?.inviteUsers?.() && (
+            <UserInvitationModal
+              workspaceId={currentWorkspace?.workspace.id || ""}
+              onUserInvited={() => {
+                refetchUsers();
+                queryClient.invalidateQueries({
+                  queryKey: ["workspaceUsers", currentWorkspace?.workspace.id],
+                });
+              }}
+            />
+          )}
+        </div>
       </div>
 
       {/* Users Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Users className="w-5 h-5" />
-            <span>Workspace Users ({workspaceUsers.length})</span>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Users className="w-5 h-5" />
+              <span>Workspace Users</span>
+              <Badge variant="secondary" className="ml-2">
+                {workspaceUsers.length}
+              </Badge>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -585,7 +298,6 @@ const UserManagement = () => {
                   <TableHead>User</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Permissions</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -603,7 +315,9 @@ const UserManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{workspaceUser.role}</Badge>
+                      <Badge variant="secondary">
+                        {workspaceUser.role?.name || "Unknown"}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
@@ -639,36 +353,251 @@ const UserManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {workspaceUser.permissions
-                          .slice(0, 3)
-                          .map((permission: any) => (
-                            <Badge
-                              key={permission.id}
-                              variant="outline"
-                              className="text-xs"
-                            >
-                              {permission.permission.replace(/_/g, " ")}
-                            </Badge>
-                          ))}
-                        {workspaceUser.permissions.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{workspaceUser.permissions.length - 3} more
+                      <div className="flex items-center space-x-2">
+                        {can.editUserRoles() && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditDialog(workspaceUser)}
+                            disabled={workspaceUser.role?.name === "Owner"}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {can.removeUsers() &&
+                          workspaceUser.role?.name !== "Owner" && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Remove User
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to remove{" "}
+                                    {workspaceUser.user.name} from this
+                                    workspace? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      handleRemoveUser(workspaceUser.user.id)
+                                    }
+                                    className="bg-red-600 hover:bg-red-700"
+                                    disabled={isRemoving}
+                                  >
+                                    {isRemoving ? (
+                                      <>
+                                        <Loader className="w-4 h-4 mr-2 animate-spin" />
+                                        Removing...
+                                      </>
+                                    ) : (
+                                      "Remove User"
+                                    )}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Roles Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Shield className="w-5 h-5" />
+              <span>Workspace Roles</span>
+              <Badge variant="secondary" className="ml-2">
+                {roles.length}
+              </Badge>
+            </div>
+            <div className="text-sm text-gray-500">
+              {roles.filter((r: any) => r.isSystem).length} system,{" "}
+              {roles.filter((r: any) => !r.isSystem).length} custom
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {rolesLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader className="w-6 h-6 animate-spin" />
+            </div>
+          ) : roles.length === 0 ? (
+            <div className="text-center py-8">
+              <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No roles found
+              </h3>
+              <p className="text-gray-500 mb-4">
+                Create your first custom role to get started with role-based
+                access control.
+              </p>
+              {can?.createRoles?.() && (
+                <RoleCreationModal
+                  onRoleCreated={() => {
+                    refetchUsers();
+                    queryClient.invalidateQueries({
+                      queryKey: [
+                        "workspaceRoles",
+                        currentWorkspace?.workspace.id,
+                      ],
+                    });
+                  }}
+                />
+              )}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Role Name</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Users</TableHead>
+                  <TableHead>Permissions</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {roles.map((role: any) => (
+                  <TableRow
+                    key={role.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <div className="font-medium">{role.name}</div>
+                        {role.isSystem && (
+                          <Badge variant="secondary" className="text-xs">
+                            System
                           </Badge>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
+                      <Badge
+                        variant={role.isSystem ? "default" : "outline"}
+                        className={
+                          role.isSystem
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                        }
+                      >
+                        {role.isSystem ? "System Role" : "Custom Role"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditDialog(workspaceUser)}
-                          disabled={workspaceUser.role === "Owner"}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        {workspaceUser.role !== "Owner" && (
+                        <Users className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm">
+                          {
+                            workspaceUsers.filter(
+                              (wu: any) => wu.role?.id === role.id
+                            ).length
+                          }{" "}
+                          user
+                          {workspaceUsers.filter(
+                            (wu: any) => wu.role?.id === role.id
+                          ).length !== 1
+                            ? "s"
+                            : ""}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {role.rolePermissions
+                          ?.slice(0, 3)
+                          .map((rolePermission: any) => (
+                            <Badge
+                              key={rolePermission.id}
+                              variant="outline"
+                              className="text-xs"
+                            >
+                              {rolePermission.permission.name.replace(
+                                /_/g,
+                                " "
+                              )}
+                            </Badge>
+                          ))}
+                        {(role.rolePermissions?.length || 0) > 3 && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs cursor-help"
+                                >
+                                  +{(role.rolePermissions?.length || 0) - 3}{" "}
+                                  more
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs">
+                                  <p className="font-medium mb-2">
+                                    All Permissions:
+                                  </p>
+                                  <div className="space-y-1">
+                                    {role.rolePermissions?.map(
+                                      (rolePermission: any) => (
+                                        <div
+                                          key={rolePermission.id}
+                                          className="text-xs"
+                                        >
+                                          {rolePermission.permission.name.replace(
+                                            /_/g,
+                                            " "
+                                          )}
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        {(!role.rolePermissions ||
+                          role.rolePermissions.length === 0) && (
+                          <span className="text-xs text-gray-500">
+                            No permissions
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        {can.editUserRoles() && !role.isSystem && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              // TODO: Implement role editing
+                              toast.info("Role editing coming soon!");
+                            }}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {can.editUserRoles() && !role.isSystem && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
@@ -681,34 +610,35 @@ const UserManagement = () => {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Remove User</AlertDialogTitle>
+                                <AlertDialogTitle className="flex items-center space-x-2">
+                                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                                  <span>Delete Role</span>
+                                </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to remove{" "}
-                                  {workspaceUser.user.name} from this workspace?
-                                  This action cannot be undone.
+                                  Are you sure you want to delete the role "
+                                  {role.name}"? This action cannot be undone and
+                                  will affect all users assigned to this role.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() =>
-                                    handleRemoveUser(workspaceUser.user.id)
-                                  }
                                   className="bg-red-600 hover:bg-red-700"
-                                  disabled={isRemoving}
+                                  onClick={() => {
+                                    // TODO: Implement role deletion
+                                    toast.info("Role deletion coming soon!");
+                                  }}
                                 >
-                                  {isRemoving ? (
-                                    <>
-                                      <Loader className="w-4 h-4 mr-2 animate-spin" />
-                                      Removing...
-                                    </>
-                                  ) : (
-                                    "Remove User"
-                                  )}
+                                  Delete Role
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
+                        )}
+                        {role.isSystem && (
+                          <span className="text-xs text-gray-500">
+                            Protected
+                          </span>
                         )}
                       </div>
                     </TableCell>
@@ -743,13 +673,13 @@ const UserManagement = () => {
                 {/* Role Selection */}
                 <FormField
                   control={editForm.control}
-                  name="role"
+                  name="roleId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Role</FormLabel>
                       <Select
+                        value={field.value}
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -757,15 +687,12 @@ const UserManagement = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Admin">
-                            Admin - Full access to workspace
-                          </SelectItem>
-                          <SelectItem value="Manager">
-                            Manager - Manage properties and leads
-                          </SelectItem>
-                          <SelectItem value="Agent">
-                            Agent - Basic access to assigned tasks
-                          </SelectItem>
+                          {roles.map((role: any) => (
+                            <SelectItem key={role.id} value={role.id}>
+                              {role.name}
+                              {role.isSystem && " (System)"}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -777,15 +704,15 @@ const UserManagement = () => {
                 <div>
                   <FormLabel className="text-base">Permissions</FormLabel>
                   <div className="mt-3 space-y-4">
-                    {permissionGroups.map((group) => (
+                    {permissionGroups.map((group: any) => (
                       <div key={group.group} className="border rounded-lg p-4">
                         <h4 className="font-medium text-gray-900 mb-3">
                           {group.group}
                         </h4>
                         <div className="grid grid-cols-2 gap-3">
-                          {group.permissions.map((permission) => (
+                          {group.permissions.map((permission: any) => (
                             <FormField
-                              key={permission.value}
+                              key={permission.name}
                               control={editForm.control}
                               name="permissions"
                               render={({ field }) => (
@@ -793,7 +720,7 @@ const UserManagement = () => {
                                   <FormControl>
                                     <Checkbox
                                       checked={field.value?.includes(
-                                        permission.value
+                                        permission.name
                                       )}
                                       onCheckedChange={(checked) => {
                                         const currentPermissions =
@@ -801,12 +728,12 @@ const UserManagement = () => {
                                         if (checked) {
                                           field.onChange([
                                             ...currentPermissions,
-                                            permission.value,
+                                            permission.name,
                                           ]);
                                         } else {
                                           field.onChange(
                                             currentPermissions.filter(
-                                              (p) => p !== permission.value
+                                              (p) => p !== permission.name
                                             )
                                           );
                                         }
@@ -815,10 +742,10 @@ const UserManagement = () => {
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel className="text-sm font-medium">
-                                      {permission.label}
+                                      {permission.name.replace(/_/g, " ")}
                                     </FormLabel>
                                     <p className="text-xs text-gray-500">
-                                      {permission.description}
+                                      {permission.group || "General"}
                                     </p>
                                   </div>
                                 </FormItem>

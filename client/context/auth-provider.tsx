@@ -7,6 +7,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { getCurrentUserQueryFn, refreshTokenFn } from "@/lib/api";
 import { userType } from "@/types/api.types";
 import API from "@/lib/axios-client";
+import { MandatoryPasswordChangeModal } from "@/components/forms/MandatoryPasswordChangeModal";
 
 interface AuthContextProps {
   user?: userType | null;
@@ -35,6 +36,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [user, setUser] = useState<userType | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
 
   // Initialize auth state after hydration
   useEffect(() => {
@@ -84,6 +86,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [isInitialized, data, user]);
 
+  // Show password change modal if user must update password
+  useEffect(() => {
+    console.log("🔍 Auth Provider - User data:", user);
+    console.log(
+      "🔍 Auth Provider - mustUpdatePassword:",
+      user?.mustUpdatePassword
+    );
+
+    if (user && user.mustUpdatePassword) {
+      console.log("✅ Showing password change modal");
+      setShowPasswordChangeModal(true);
+    } else {
+      console.log("❌ Hiding password change modal");
+      setShowPasswordChangeModal(false);
+    }
+  }, [user]);
+
   // Manual refresh function
   const refreshAuth = async () => {
     try {
@@ -130,6 +149,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Handle password change completion
+  const handlePasswordChanged = async () => {
+    // Refresh user data to get updated mustUpdatePassword status
+    await refetch();
+    setShowPasswordChangeModal(false);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -141,6 +167,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }}
     >
       {children}
+
+      {/* Mandatory Password Change Modal */}
+      <MandatoryPasswordChangeModal
+        open={showPasswordChangeModal}
+        onPasswordChanged={handlePasswordChanged}
+      />
     </AuthContext.Provider>
   );
 };

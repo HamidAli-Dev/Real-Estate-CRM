@@ -4,11 +4,9 @@ import { Strategy as JwtStrategy } from "passport-jwt";
 
 import { APP_CONFIG } from "./app.config";
 import { db } from "../utils/db";
-import { Role } from "@prisma/client";
 
 interface JwtPayload {
   userId: string;
-  role?: string;
   workspaceId?: string;
 }
 
@@ -42,9 +40,12 @@ const passportConfig = () => {
           // Check if user has any workspaces to determine their role
           const userWorkspaces = await db.userWorkspace.findMany({
             where: { userId: user.id },
+            include: {
+              role: true,
+            },
           });
 
-          let userRole: Role | null = null;
+          let userRole: any = null;
           let userWorkspaceId: string | null = null;
 
           if (userWorkspaces.length > 0) {
@@ -61,7 +62,7 @@ const passportConfig = () => {
             }
           } else {
             // User has no workspaces yet - they get implicit Owner role for workspace creation
-            userRole = "Owner";
+            userRole = { name: "Owner", isSystem: true };
           }
 
           const userWithRole = {

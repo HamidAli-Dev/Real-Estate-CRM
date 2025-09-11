@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { Role } from "@prisma/client";
 
 import {
   createPipelineStageController,
@@ -9,45 +8,45 @@ import {
   reorderPipelineStagesController,
 } from "../controllers/pipeline.controller";
 import { authenticate } from "../middlewares/passportAuth.middleware";
-import { authorizeRoles } from "../middlewares/authorizeRoles.middleware";
+import { checkPermission } from "../middlewares/permission.middleware";
 
 const pipelineRoutes = Router();
 
 // All pipeline routes require authentication
 pipelineRoutes.use(authenticate);
 
-// Create pipeline stage - only Owners and Admins
+// Create pipeline stage
 pipelineRoutes.post(
   "/:workspaceId/stages",
-  authorizeRoles(Role.Owner, Role.Admin),
+  checkPermission("EDIT_SETTINGS"),
   createPipelineStageController
 );
 
-// Get pipeline stages by workspace - accessible to all workspace members
+// Get pipeline stages by workspace
 pipelineRoutes.get(
   "/:workspaceId/stages",
-  authorizeRoles(Role.Owner, Role.Admin, Role.Manager, Role.Agent),
+  checkPermission("VIEW_LEADS"),
   getPipelineStagesController
 );
 
-// Update pipeline stage - only Owners and Admins
+// Update pipeline stage
 pipelineRoutes.put(
   "/:workspaceId/stages/:stageId",
-  authorizeRoles(Role.Owner, Role.Admin),
+  checkPermission("EDIT_SETTINGS"),
   updatePipelineStageController
 );
 
-// Delete pipeline stage - only Owners and Admins
+// Delete pipeline stage
 pipelineRoutes.delete(
   "/:workspaceId/stages/:stageId",
-  authorizeRoles(Role.Owner, Role.Admin),
+  checkPermission("EDIT_SETTINGS"),
   deletePipelineStageController
 );
 
-// Reorder pipeline stages - only Owners and Admins
+// Reorder pipeline stages
 pipelineRoutes.patch(
   "/:workspaceId/stages/reorder",
-  authorizeRoles(Role.Owner, Role.Admin),
+  checkPermission("EDIT_SETTINGS"),
   reorderPipelineStagesController
 );
 

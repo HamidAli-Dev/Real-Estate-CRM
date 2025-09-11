@@ -160,7 +160,7 @@ const TopBar = () => {
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
-              className="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-200"
+              className="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-200 !mr-0"
             >
               {isDarkMode ? (
                 <Sun className="w-5 h-5" />

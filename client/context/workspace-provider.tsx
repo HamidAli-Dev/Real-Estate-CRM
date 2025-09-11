@@ -122,9 +122,20 @@ export const WorkspaceProvider = ({
     const newUrl = `${pathname}?workspaceId=${workspaceId}`;
     router.push(newUrl);
 
-    // Clear current workspace data to force refetch
+    // Clear all workspace-related queries to force refetch
     queryClient.removeQueries({ queryKey: ["workspace"] });
+    queryClient.removeQueries({ queryKey: ["workspaceUsers"] });
+    queryClient.removeQueries({ queryKey: ["workspaceRoles"] });
+    queryClient.removeQueries({ queryKey: ["permissions"] });
+
+    // Invalidate specific workspace queries
     queryClient.invalidateQueries({ queryKey: ["workspace", workspaceId] });
+    queryClient.invalidateQueries({
+      queryKey: ["workspaceUsers", workspaceId],
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["workspaceRoles", workspaceId],
+    });
 
     // Clear current workspace state immediately
     setCurrentWorkspace(null);

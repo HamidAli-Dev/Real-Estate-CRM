@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { Role } from "@prisma/client";
 
 import {
   createWorkspaceController,
@@ -13,19 +12,15 @@ import {
   deleteWorkspaceController,
 } from "../controllers/workspace.controller";
 import { authenticate } from "../middlewares/passportAuth.middleware";
-import { authorizeRoles } from "../middlewares/authorizeRoles.middleware";
+import { checkPermission } from "../middlewares/permission.middleware";
 
 const workspaceRoutes = Router();
 
 // All workspace routes require authentication
 workspaceRoutes.use(authenticate);
 
-// Create workspace - only Owners can create workspaces
-workspaceRoutes.post(
-  "/create",
-  authorizeRoles(Role.Owner),
-  createWorkspaceController
-);
+// Create workspace - authenticated users can create workspaces (no permission check needed)
+workspaceRoutes.post("/create", createWorkspaceController);
 
 // Get user's workspaces
 workspaceRoutes.get("/user", getUserWorkspacesController);
@@ -36,38 +31,42 @@ workspaceRoutes.get("/:workspaceId", getWorkspaceByIdController);
 // Edit workspace - only Owners can edit workspaces
 workspaceRoutes.put(
   "/:workspaceId",
-  authorizeRoles(Role.Owner),
+  checkPermission("EDIT_SETTINGS"),
   editWorkspaceController
 );
 
 // Delete workspace - only Owners can delete workspaces
 workspaceRoutes.delete(
   "/:workspaceId",
-  authorizeRoles(Role.Owner),
+  checkPermission("EDIT_SETTINGS"),
   deleteWorkspaceController
 );
 
 // Get workspace users - accessible to all workspace members
-workspaceRoutes.get("/:workspaceId/users", getWorkspaceUsersController);
+workspaceRoutes.get(
+  "/:workspaceId/users",
+  checkPermission("VIEW_USERS"),
+  getWorkspaceUsersController
+);
 
 // Invite user to workspace - only Owners and Admins
 workspaceRoutes.post(
   "/:workspaceId/users/invite",
-  authorizeRoles(Role.Owner, Role.Admin),
+  checkPermission("INVITE_USERS"),
   inviteUserController
 );
 
 // Update user role - only Owners and Admins
 workspaceRoutes.put(
   "/:workspaceId/users/:userId/role",
-  authorizeRoles(Role.Owner, Role.Admin),
+  checkPermission("EDIT_USER_ROLES"),
   updateUserRoleController
 );
 
 // Remove user from workspace - only Owners and Admins
 workspaceRoutes.delete(
   "/:workspaceId/users/:userId",
-  authorizeRoles(Role.Owner, Role.Admin),
+  checkPermission("REMOVE_USERS"),
   removeUserController
 );
 

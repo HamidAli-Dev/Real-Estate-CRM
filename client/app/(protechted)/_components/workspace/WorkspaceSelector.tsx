@@ -239,7 +239,7 @@ const WorkspaceSelector = () => {
                           isCurrentWorkspace ? "bg-blue-600 text-white" : ""
                         }`}
                       >
-                        {workspace.role}
+                        {workspace.role?.name || "Unknown"}
                       </Badge>
                       {isCurrentWorkspace && (
                         <span className="text-xs text-blue-600 font-medium">
@@ -256,7 +256,7 @@ const WorkspaceSelector = () => {
           <DropdownMenuSeparator />
 
           {/* Create new workspace option - only for Owners */}
-          {user?.role === "Owner" && (
+          {user?.role?.name === "Owner" && (
             <AlertDialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem
@@ -328,13 +328,15 @@ const WorkspaceSelector = () => {
           )}
 
           {/* Delete workspace option - only for Owners */}
-          {user?.role === "Owner" && userWorkspaces.length > 1 && (
+          {user?.role?.name === "Owner" && userWorkspaces.length > 1 && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onSelect={(e) => e.preventDefault()}
                 className="flex items-center space-x-2 cursor-pointer text-red-600 hover:text-red-700 hover:bg-red-50 border-t border-gray-100 pt-2 mt-2"
-                onClick={() => setIsDeleteOpen(true)}
+                onClick={() => {
+                  setIsDeleteOpen(true);
+                }}
               >
                 <Trash2 className="w-4 h-4" />
                 <span className="font-medium">Delete Workspace</span>
