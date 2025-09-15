@@ -312,8 +312,8 @@ export const inviteUserToWorkspaceService = async (
     }
   }
 
-  // Use the temporary password provided by frontend
-  const temporaryPassword = data.tempPassword;
+  // Use the temporary password
+  const temporaryPassword = "123456";
   const hashedTemporaryPassword = await hashValue(temporaryPassword);
 
   // Create user, userWorkspace, role assignment, and invitation in a transaction
@@ -451,25 +451,18 @@ export const updateUserRoleService = async (
     throw new BadRequestException("Role not found in workspace");
   }
 
-  // Update user role
-  await db.userWorkspace.update({
-    where: { id: targetUserWorkspace.id },
-    data: { roleId: newRole.id },
-  });
+  // Update user role, name and email
 
-  // Remove existing role permissions
-  await db.rolePermission.deleteMany({
-    where: { roleId: targetUserWorkspace.roleId },
-  });
+  const result = await db.$transaction(async (tx) => {
+    await tx.userWorkspace.update({
+      where: { id: targetUserWorkspace.id },
+      data: { roleId: newRole.id },
+    });
 
-  // Create new role permissions
-  const permissions = data.permissions.map((permission) => ({
-    roleId: newRole.id,
-    permissionId: permission,
-  }));
-
-  await db.rolePermission.createMany({
-    data: permissions,
+    await tx.user.update({
+      where: { id: targetUserWorkspace.userId },
+      data: { name: data.name, email: data.email },
+    });
   });
 
   return { message: "User role updated successfully" };

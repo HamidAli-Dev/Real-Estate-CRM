@@ -13,7 +13,11 @@ import {
   deleteWorkspaceService,
 } from "../services/workspace.service";
 import { BadRequestException } from "../utils/AppError";
-import { createWorkspaceSchema } from "../validation/workspace.validation";
+import {
+  createWorkspaceSchema,
+  inviteUserSchema,
+  updateUserRoleSchema,
+} from "../validation/workspace.validation";
 
 export const createWorkspaceController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -111,13 +115,12 @@ export const inviteUserController = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user.id;
     const workspaceId = req.params.workspaceId;
-    const { name, email, roleId, tempPassword } = req.body;
+    const { name, email, roleId } = inviteUserSchema.parse({ ...req.body });
 
     const result = await inviteUserToWorkspaceService(workspaceId, userId, {
       name,
       email,
       roleId,
-      tempPassword,
     });
 
     return res.status(HTTPSTATUS.CREATED).json({
@@ -132,13 +135,13 @@ export const updateUserRoleController = asyncHandler(
     const userId = req.user.id;
     const workspaceId = req.params.workspaceId;
     const targetUserId = req.params.userId;
-    const { roleId, permissions } = req.body;
+    const { roleId, name, email } = updateUserRoleSchema.parse({ ...req.body });
 
     const result = await updateUserRoleService(
       workspaceId,
       targetUserId,
       userId,
-      { roleId, permissions }
+      { roleId, name, email }
     );
 
     return res.status(HTTPSTATUS.OK).json({

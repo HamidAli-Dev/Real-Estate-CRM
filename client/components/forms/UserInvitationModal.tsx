@@ -61,8 +61,6 @@ export const UserInvitationModal = ({
   onUserInvited,
 }: UserInvitationModalProps) => {
   const [open, setOpen] = useState(false);
-  const [tempPassword, setTempPassword] = useState("");
-  const [passwordCopied, setPasswordCopied] = useState(false);
   const { can } = usePermission();
 
   const form = useForm<InviteUserFormData>({
@@ -95,47 +93,17 @@ export const UserInvitationModal = ({
     },
   });
 
-  const generatePassword = () => {
-    const password = generateTemporaryPassword();
-    setTempPassword(password);
-    setPasswordCopied(false);
-  };
-
-  const copyPassword = async () => {
-    if (tempPassword) {
-      try {
-        await navigator.clipboard.writeText(tempPassword);
-        setPasswordCopied(true);
-        toast.success("Password copied to clipboard");
-        setTimeout(() => setPasswordCopied(false), 2000);
-      } catch (error) {
-        toast.error("Failed to copy password");
-      }
-    }
-  };
-
   const onSubmit = (data: InviteUserFormData) => {
-    if (!tempPassword) {
-      toast.error("Please generate a temporary password first");
-      return;
-    }
-
     inviteUserMutation.mutate({
       workspaceId,
       name: data.name,
       email: data.email,
       roleId: data.roleId,
-      tempPassword,
     } as inviteUserType);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
-    if (!newOpen) {
-      form.reset();
-      setTempPassword("");
-      setPasswordCopied(false);
-    }
   };
 
   if (!can.inviteUsers()) {
@@ -233,45 +201,6 @@ export const UserInvitationModal = ({
               )}
             />
 
-            <div className="space-y-3">
-              <FormLabel>Temporary Password</FormLabel>
-              <div className="flex gap-2">
-                <Input
-                  value={tempPassword}
-                  placeholder="Click 'Generate Password' to create a temporary password"
-                  readOnly
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={generatePassword}
-                  className="shrink-0"
-                >
-                  Generate
-                </Button>
-                {tempPassword && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={copyPassword}
-                    className="shrink-0"
-                  >
-                    {passwordCopied ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Share this password with the user. They will be required to
-                change it on first login.
-              </p>
-            </div>
-
             <DialogFooter>
               <Button
                 type="button"
@@ -283,7 +212,7 @@ export const UserInvitationModal = ({
               </Button>
               <Button
                 type="submit"
-                disabled={inviteUserMutation.isPending || !tempPassword}
+                disabled={inviteUserMutation.isPending}
                 className="gap-2"
               >
                 {inviteUserMutation.isPending && (

@@ -69,22 +69,27 @@ import {
   removeUserMutationFn,
   getWorkspaceRolesQueryFn,
   getPermissionsQueryFn,
+  deleteRoleMutationFn,
+  WorkspaceUserResponseType,
 } from "@/lib/api";
 import { usePermission } from "@/hooks/usePermission";
 import { updateUserRoleType, permissionGroupType } from "@/types/api.types";
 import { UserInvitationModal } from "@/components/forms/UserInvitationModal";
-import { RoleCreationModal } from "@/components/forms/RoleCreationModal";
+import { RoleModal } from "@/components/forms/RoleCreationModal";
+import { Input } from "@/components/ui/input";
 
 const updateUserRoleSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email").min(1, "Email is required"),
   roleId: z.string().min(1, "Please select a role"),
-  permissions: z
-    .array(z.string())
-    .min(1, "At least one permission is required"),
 });
 
 const UserManagement = () => {
-  const [editingUser, setEditingUser] = useState<any>(null);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<
+    WorkspaceUserResponseType | null | undefined
+  >(null);
+  const [editingRole, setEditingRole] = useState<any>(null);
+  const [creatingRole, setCreatingRole] = useState(false);
   const { currentWorkspace, userWorkspaces } = useWorkspaceContext();
   const { user } = useAuthContext();
   const { can } = usePermission();
@@ -94,7 +99,8 @@ const UserManagement = () => {
     resolver: zodResolver(updateUserRoleSchema),
     defaultValues: {
       roleId: "",
-      permissions: [],
+      name: "",
+      email: "",
     },
   });
 
@@ -126,6 +132,8 @@ const UserManagement = () => {
     gcTime: 0, // Don't cache the data
   });
 
+  console.log("workspaceRoles💜:", rolesData);
+
   // Get permissions
   const { data: permissionsData } = useQuery({
     queryKey: ["permissions"],
@@ -134,6 +142,9 @@ const UserManagement = () => {
 
   // Extract data
   const workspaceUsers = usersData || [];
+
+  console.log("workspaceUsers:", workspaceUsers);
+
   const roles = rolesData || [];
 
   // Clear queries when workspace changes to prevent cross-workspace data
@@ -170,7 +181,6 @@ const UserManagement = () => {
       });
     }
   }, [currentWorkspace, queryClient]);
-  const permissionGroups = permissionsData?.data || [];
 
   // Update user role mutation
   const { mutate: updateUserRole, isPending: isUpdating } = useMutation({
@@ -209,6 +219,24 @@ const UserManagement = () => {
     },
   });
 
+  // Delete role mutation
+  const { mutate: deleteRole, isPending: isDeletingRole } = useMutation({
+    mutationFn: deleteRoleMutationFn,
+    onSuccess: () => {
+      toast.success("Role deleted successfully!");
+      // Invalidate both users and roles queries
+      refetchUsers();
+      queryClient.invalidateQueries({
+        queryKey: ["workspaceRoles", currentWorkspace?.workspace.id],
+      });
+    },
+    onError: (error: any) => {
+      toast.error("Failed to delete role", {
+        description: error?.data?.message || error?.message,
+      });
+    },
+  });
+
   const handleEditSubmit = (values: z.infer<typeof updateUserRoleSchema>) => {
     if (!currentWorkspace || !editingUser) return;
 
@@ -219,12 +247,12 @@ const UserManagement = () => {
     });
   };
 
-  const openEditDialog = (workspaceUser: any) => {
+  const openEditDialog = (workspaceUser: WorkspaceUserResponseType) => {
     setEditingUser(workspaceUser);
     editForm.reset({
+      name: workspaceUser.user.name,
+      email: workspaceUser.user.email,
       roleId: workspaceUser.role.id,
-      permissions:
-        workspaceUser.permissions?.map((p: any) => p.permission.name) || [],
     });
   };
 
@@ -234,6 +262,28 @@ const UserManagement = () => {
     removeUser({
       workspaceId: currentWorkspace.workspace.id,
       userId,
+    });
+  };
+
+  const handleEditRole = (role: any) => {
+    setEditingRole(role);
+  };
+
+  const handleDeleteRole = (roleId: string) => {
+    if (!currentWorkspace) return;
+
+    deleteRole({
+      workspaceId: currentWorkspace.workspace.id,
+      roleId,
+    });
+  };
+
+  const handleRoleSaved = () => {
+    setEditingRole(null);
+    // Invalidate both users and roles queries
+    refetchUsers();
+    queryClient.invalidateQueries({
+      queryKey: ["workspaceRoles", currentWorkspace?.workspace.id],
     });
   };
 
@@ -250,14 +300,14 @@ const UserManagement = () => {
 
         <div className="flex gap-2">
           {can?.createRoles?.() && (
-            <RoleCreationModal
-              onRoleCreated={() => {
-                refetchUsers();
-                queryClient.invalidateQueries({
-                  queryKey: ["workspaceRoles", currentWorkspace?.workspace.id],
-                });
-              }}
-            />
+            <Button
+              size="sm"
+              className="gap-2"
+              onClick={() => setCreatingRole(true)}
+            >
+              <Plus className="h-4 w-4" />
+              Create Role
+            </Button>
           )}
           {can?.inviteUsers?.() && (
             <UserInvitationModal
@@ -302,7 +352,7 @@ const UserManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {workspaceUsers.map((workspaceUser: any) => (
+                {workspaceUsers.map((workspaceUser) => (
                   <TableRow key={workspaceUser.id}>
                     <TableCell>
                       <div>
@@ -451,19 +501,6 @@ const UserManagement = () => {
                 Create your first custom role to get started with role-based
                 access control.
               </p>
-              {can?.createRoles?.() && (
-                <RoleCreationModal
-                  onRoleCreated={() => {
-                    refetchUsers();
-                    queryClient.invalidateQueries({
-                      queryKey: [
-                        "workspaceRoles",
-                        currentWorkspace?.workspace.id,
-                      ],
-                    });
-                  }}
-                />
-              )}
             </div>
           ) : (
             <Table>
@@ -589,10 +626,7 @@ const UserManagement = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              // TODO: Implement role editing
-                              toast.info("Role editing coming soon!");
-                            }}
+                            onClick={() => handleEditRole(role)}
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
@@ -604,6 +638,7 @@ const UserManagement = () => {
                                 variant="outline"
                                 size="sm"
                                 className="text-red-600 hover:text-red-700"
+                                disabled={isDeletingRole}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
@@ -624,12 +659,17 @@ const UserManagement = () => {
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
                                   className="bg-red-600 hover:bg-red-700"
-                                  onClick={() => {
-                                    // TODO: Implement role deletion
-                                    toast.info("Role deletion coming soon!");
-                                  }}
+                                  onClick={() => handleDeleteRole(role.id)}
+                                  disabled={isDeletingRole}
                                 >
-                                  Delete Role
+                                  {isDeletingRole ? (
+                                    <>
+                                      <Loader className="w-4 h-4 mr-2 animate-spin" />
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    "Delete Role"
+                                  )}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -670,6 +710,43 @@ const UserManagement = () => {
                 onSubmit={editForm.handleSubmit(handleEditSubmit)}
                 className="space-y-6"
               >
+                <FormField
+                  control={editForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <Input
+                        value={field.value || ""}
+                        onChange={field.onChange}
+                        placeholder="John Doe"
+                        disabled={isUpdating}
+                        className="h-8 text-sm"
+                      />
+                      <FormMessage />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <Input
+                        value={field.value || ""}
+                        readOnly
+                        disabled={isUpdating}
+                        className="h-8 text-sm outline-none ring-0 focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:border-input"
+                      />
+                      <FormMessage />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 {/* Role Selection */}
                 <FormField
                   control={editForm.control}
@@ -699,67 +776,6 @@ const UserManagement = () => {
                     </FormItem>
                   )}
                 />
-
-                {/* Permissions */}
-                <div>
-                  <FormLabel className="text-base">Permissions</FormLabel>
-                  <div className="mt-3 space-y-4">
-                    {permissionGroups.map((group: any) => (
-                      <div key={group.group} className="border rounded-lg p-4">
-                        <h4 className="font-medium text-gray-900 mb-3">
-                          {group.group}
-                        </h4>
-                        <div className="grid grid-cols-2 gap-3">
-                          {group.permissions.map((permission: any) => (
-                            <FormField
-                              key={permission.name}
-                              control={editForm.control}
-                              name="permissions"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(
-                                        permission.name
-                                      )}
-                                      onCheckedChange={(checked) => {
-                                        const currentPermissions =
-                                          field.value || [];
-                                        if (checked) {
-                                          field.onChange([
-                                            ...currentPermissions,
-                                            permission.name,
-                                          ]);
-                                        } else {
-                                          field.onChange(
-                                            currentPermissions.filter(
-                                              (p) => p !== permission.name
-                                            )
-                                          );
-                                        }
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel className="text-sm font-medium">
-                                      {permission.name.replace(/_/g, " ")}
-                                    </FormLabel>
-                                    <p className="text-xs text-gray-500">
-                                      {permission.group || "General"}
-                                    </p>
-                                  </div>
-                                </FormItem>
-                              )}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <FormMessage>
-                    {editForm.formState.errors.permissions?.message}
-                  </FormMessage>
-                </div>
               </form>
             </Form>
           </div>
@@ -787,6 +803,39 @@ const UserManagement = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Role Modal */}
+      <RoleModal
+        mode="edit"
+        role={editingRole}
+        onRoleSaved={handleRoleSaved}
+        trigger={null}
+        open={!!editingRole}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingRole(null);
+          }
+        }}
+      />
+
+      {/* Create Role Modal */}
+      <RoleModal
+        mode="create"
+        onRoleSaved={() => {
+          setCreatingRole(false);
+          refetchUsers();
+          queryClient.invalidateQueries({
+            queryKey: ["workspaceRoles", currentWorkspace?.workspace.id],
+          });
+        }}
+        trigger={null}
+        open={creatingRole}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreatingRole(false);
+          }
+        }}
+      />
     </div>
   );
 };

@@ -165,18 +165,14 @@ export const logoutAllDevices = asyncHandler(
 
 export const changePassword = asyncHandler(
   async (req: Request, res: Response) => {
-    const { currentPassword, newPassword } = req.body;
+    const { email, newPassword } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
       throw new UnauthorizedException("User not authenticated");
     }
 
-    const result = await changePasswordService(
-      userId,
-      currentPassword,
-      newPassword
-    );
+    const result = await changePasswordService(userId, email, newPassword);
 
     return res.status(HTTPSTATUS.OK).json(result);
   }

@@ -16,6 +16,7 @@ import {
   Lock,
   Key,
   Sparkles,
+  Mail,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,7 @@ import { changePasswordMutationFn } from "@/lib/api";
 
 const passwordChangeSchema = z
   .object({
-    currentPassword: z.string().min(1, "Current password is required"),
+    email: z.string().min(1, "Email is required"),
     newPassword: z
       .string()
       .min(8, "Password must be at least 8 characters")
@@ -63,7 +64,6 @@ export const MandatoryPasswordChangeModal = ({
   open,
   onPasswordChanged,
 }: MandatoryPasswordChangeModalProps) => {
-  console.log("🔍 MandatoryPasswordChangeModal - open:", open);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -73,7 +73,7 @@ export const MandatoryPasswordChangeModal = ({
   const form = useForm<PasswordChangeFormData>({
     resolver: zodResolver(passwordChangeSchema),
     defaultValues: {
-      currentPassword: "",
+      email: "",
       newPassword: "",
       confirmPassword: "",
     },
@@ -119,15 +119,9 @@ export const MandatoryPasswordChangeModal = ({
 
   const onSubmit = (data: PasswordChangeFormData) => {
     changePasswordMutation.mutate({
-      currentPassword: data.currentPassword,
+      email: data.email,
       newPassword: data.newPassword,
     });
-  };
-
-  const getPasswordStrengthColor = (strength: number) => {
-    if (strength < 40) return "bg-red-500";
-    if (strength < 80) return "bg-yellow-500";
-    return "bg-green-500";
   };
 
   const getPasswordStrengthText = (strength: number) => {
@@ -171,8 +165,8 @@ export const MandatoryPasswordChangeModal = ({
                 Security Setup Required
               </h2>
               <p className="text-gray-600 text-base">
-                For your security, you must change your temporary password
-                before accessing your workspace.
+                For your security, you must change your password before
+                accessing your workspace.
               </p>
             </div>
 
@@ -196,38 +190,22 @@ export const MandatoryPasswordChangeModal = ({
               {/* Current Password */}
               <FormField
                 control={form.control}
-                name="currentPassword"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2 text-sm font-medium">
-                      <Key className="h-4 w-4" />
-                      Temporary Password
+                      <Mail className="h-4 w-4" />
+                      Email
                     </FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Input
-                          type={showCurrentPassword ? "text" : "password"}
-                          placeholder="Enter your temporary password"
+                          type={"email"}
+                          placeholder="Enter your email"
                           {...field}
                           disabled={changePasswordMutation.isPending}
                           className="pr-10 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                         />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() =>
-                            setShowCurrentPassword(!showCurrentPassword)
-                          }
-                          disabled={changePasswordMutation.isPending}
-                        >
-                          {showCurrentPassword ? (
-                            <EyeOff className="h-4 w-4 text-gray-400" />
-                          ) : (
-                            <Eye className="h-4 w-4 text-gray-400" />
-                          )}
-                        </Button>
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -361,7 +339,9 @@ export const MandatoryPasswordChangeModal = ({
                   type="submit"
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 rounded-lg transition-all duration-200 transform hover:scale-[1.02] shadow-lg"
                   disabled={
-                    changePasswordMutation.isPending || passwordStrength < 80
+                    changePasswordMutation.isPending ||
+                    passwordStrength < 80 ||
+                    !form.formState.isValid
                   }
                 >
                   {changePasswordMutation.isPending ? (

@@ -8,7 +8,9 @@ export interface CreateRoleInput {
 }
 
 export interface UpdateRolePermissionsInput {
+  workspaceId: string;
   roleId: string;
+  roleName: string;
   permissions: string[];
 }
 
@@ -112,7 +114,7 @@ export const createRoleService = async (data: CreateRoleInput) => {
 export const updateRolePermissionsService = async (
   data: UpdateRolePermissionsInput
 ) => {
-  const { roleId, permissions } = data;
+  const { workspaceId, roleId, roleName, permissions } = data;
 
   // Check if role exists
   const role = await db.role.findUnique({
@@ -153,6 +155,12 @@ export const updateRolePermissionsService = async (
     // Remove existing role permissions
     await tx.rolePermission.deleteMany({
       where: { roleId },
+    });
+
+    // Update role name
+    await tx.role.update({
+      where: { id: roleId },
+      data: { name: roleName },
     });
 
     // Get or create permissions
@@ -287,6 +295,11 @@ export const deleteRoleService = async (
   await db.$transaction(async (tx) => {
     // Delete role permissions
     await tx.rolePermission.deleteMany({
+      where: { roleId },
+    });
+
+    // Delete all user invitations that reference this role (including pending ones)
+    await tx.userInvitation.deleteMany({
       where: { roleId },
     });
 

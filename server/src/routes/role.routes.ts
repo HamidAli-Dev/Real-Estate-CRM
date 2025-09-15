@@ -37,7 +37,7 @@ router.get("/:roleId", checkPermission("VIEW_USERS"), getRoleByIdController);
 
 // Update role permissions
 router.put(
-  "/:roleId/permissions",
+  "/:roleId/workspace/:workspaceId/permissions",
   checkPermission("EDIT_USER_ROLES"),
   updateRolePermissionsController
 );

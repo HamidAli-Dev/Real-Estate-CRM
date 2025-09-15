@@ -38,11 +38,13 @@ export const createRoleController = asyncHandler(
 // Update role permissions
 export const updateRolePermissionsController = asyncHandler(
   async (req: Request, res: Response) => {
-    const { roleId } = req.params;
-    const { permissions } = req.body;
+    const { roleId, workspaceId } = req.params;
+    const { roleName, permissions } = req.body;
 
     const updatedPermissions = await updateRolePermissionsService({
+      workspaceId,
       roleId,
+      roleName,
       permissions,
     });
 

@@ -133,7 +133,6 @@ export interface inviteUserType {
   name: string;
   email: string;
   roleId: string;
-  tempPassword: string;
 }
 
 export interface updateUserRoleType {

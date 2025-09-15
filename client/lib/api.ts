@@ -134,8 +134,47 @@ export const getWorkspaceByIdQueryFn = async (workspaceId: string) => {
   }
 };
 
+export interface WorkspaceUserResponseType {
+  id: string;
+  userId: string;
+  workspaceId: string;
+  roleId: string;
+  role: {
+    id: string;
+    name: string;
+    isSystem: boolean;
+    createdAt: string;
+    updatedAt: string;
+    rolePermissions: {
+      id: string;
+      roleId: string;
+      permissionId: string;
+      permission: {
+        id: string;
+        name: string;
+        group: string;
+        createdAt: string;
+        updatedAt: string;
+      }[];
+    };
+  };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  invitation: {
+    id: string;
+    status: string;
+    expiresAt: Date;
+  };
+  status: string;
+}
+
 // New workspace user management API functions
-export const getWorkspaceUsersQueryFn = async (workspaceId: string) => {
+export const getWorkspaceUsersQueryFn = async (
+  workspaceId: string
+): Promise<WorkspaceUserResponseType[]> => {
   const response = await API.get(`/workspace/${workspaceId}/users`);
 
   // Since axios interceptor returns res.data, response is already the data object
@@ -183,7 +222,8 @@ export const updateUserRoleMutationFn = async (data: {
   workspaceId: string;
   userId: string;
   roleId: string;
-  permissions: string[];
+  name: string;
+  email: string;
 }) => {
   const { workspaceId, userId, ...updateData } = data;
   const response = await API.put(
@@ -425,8 +465,32 @@ export const getPropertyCategoriesQueryFn = async (workspaceId: string) => {
 
 // Role And Permission API functions
 
+interface getWorkspaceRolesQueryResponseType {
+  id: string;
+  workspaceId: string;
+  name: string;
+  isSystem: boolean;
+  userCount: number;
+  createdAt: string;
+  updatedAt: string;
+  rolePermissions: {
+    id: string;
+    roleId: string;
+    permissionId: string;
+    permission: {
+      id: string;
+      name: string;
+      group: string;
+      createdAt: string;
+      updatedAt: string;
+    }[];
+  };
+}
+
 // Get workspace roles
-export const getWorkspaceRolesQueryFn = async (workspaceId: string) => {
+export const getWorkspaceRolesQueryFn = async (
+  workspaceId: string
+): Promise<getWorkspaceRolesQueryResponseType[]> => {
   const response = await API.get(`/roles/workspace/${workspaceId}`);
 
   // Since axios interceptor returns res.data, response is already the data object
@@ -466,9 +530,39 @@ export const createRoleMutationFn = async (data: {
   return response.data;
 };
 
+// Update role
+export const updateRoleMutationFn = async (data: {
+  roleId: string;
+  name: string;
+  permissions: string[];
+  workspaceId: string;
+}) => {
+  const { roleId, workspaceId, name, permissions } = data;
+  const response = await API.put(
+    `/roles/${roleId}/workspace/${workspaceId}/permissions`,
+    {
+      roleName: name, // Backend expects roleName, not name
+      permissions,
+    }
+  );
+  return response.data;
+};
+
+// Delete role
+export const deleteRoleMutationFn = async (data: {
+  roleId: string;
+  workspaceId: string;
+}) => {
+  const { roleId, workspaceId } = data;
+  const response = await API.delete(
+    `/roles/workspace/${workspaceId}/roles/${roleId}`
+  );
+  return response.data;
+};
+
 // Change password
 export const changePasswordMutationFn = async (data: {
-  currentPassword: string;
+  email: string;
   newPassword: string;
 }) => {
   const response = await API.post("/auth/change-password", data);

@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader, Plus, X } from "lucide-react";
+import { Loader, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -31,10 +31,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { usePermission } from "@/hooks/usePermission";
-import { createRoleMutationFn, getPermissionsQueryFn } from "@/lib/api";
+import {
+  createRoleMutationFn,
+  getPermissionsQueryFn,
+  updateRoleMutationFn,
+} from "@/lib/api";
 import { useWorkspaceContext } from "@/context/workspace-provider";
 
-const createRoleSchema = z.object({
+const roleSchema = z.object({
   name: z
     .string()
     .min(1, "Role name is required")
@@ -44,26 +48,70 @@ const createRoleSchema = z.object({
     .min(1, "At least one permission must be selected"),
 });
 
-type CreateRoleFormData = z.infer<typeof createRoleSchema>;
+type RoleFormData = z.infer<typeof roleSchema>;
 
-interface RoleCreationModalProps {
-  onRoleCreated?: () => void;
+interface RoleData {
+  id: string;
+  name: string;
+  isSystem: boolean;
+  rolePermissions: Array<{
+    id: string;
+    permission: {
+      id: string;
+      name: string;
+    };
+  }>;
 }
 
-export const RoleCreationModal = ({
-  onRoleCreated,
-}: RoleCreationModalProps) => {
-  const [open, setOpen] = useState(false);
+interface RoleModalProps {
+  mode: "create" | "edit";
+  role?: RoleData;
+  onRoleSaved?: () => void;
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export const RoleModal = ({
+  mode,
+  role,
+  onRoleSaved,
+  trigger,
+  open: externalOpen,
+  onOpenChange: externalOnOpenChange,
+}: RoleModalProps) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use external open state if provided, otherwise use internal state
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = externalOnOpenChange || setInternalOpen;
   const { can } = usePermission();
   const { currentWorkspace } = useWorkspaceContext();
 
-  const form = useForm<CreateRoleFormData>({
-    resolver: zodResolver(createRoleSchema),
+  const form = useForm<RoleFormData>({
+    resolver: zodResolver(roleSchema),
     defaultValues: {
       name: "",
       permissions: [],
     },
   });
+
+  // Reset form when role changes or modal opens
+  useEffect(() => {
+    if (open && mode === "edit" && role) {
+      const rolePermissions =
+        role.rolePermissions?.map((rp) => rp.permission.name) || [];
+      form.reset({
+        name: role.name,
+        permissions: rolePermissions,
+      });
+    } else if (open && mode === "create") {
+      form.reset({
+        name: "",
+        permissions: [],
+      });
+    }
+  }, [open, mode, role, form]);
 
   // Fetch permissions
   const { data: permissionsData, isLoading: permissionsLoading } = useQuery({
@@ -79,68 +127,45 @@ export const RoleCreationModal = ({
       toast.success("Role created successfully");
       form.reset();
       setOpen(false);
-      onRoleCreated?.();
+      onRoleSaved?.();
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || "Failed to create role");
     },
   });
 
-  const onSubmit = (data: CreateRoleFormData) => {
+  // Update role mutation
+  const updateRoleMutation = useMutation({
+    mutationFn: updateRoleMutationFn,
+    onSuccess: () => {
+      toast.success("Role updated successfully");
+      form.reset();
+      setOpen(false);
+      onRoleSaved?.();
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || "Failed to update role");
+    },
+  });
+
+  const onSubmit = (data: RoleFormData) => {
     if (!currentWorkspace?.workspace.id) {
       toast.error("No workspace selected");
       return;
     }
 
-    createRoleMutation.mutate({
-      ...data,
-      workspaceId: currentWorkspace.workspace.id,
-    });
-  };
-
-  const handleSelectAll = (group: string) => {
-    const groupPermissions = permissionsData?.[group] || [];
-
-    const currentPermissions = form.getValues("permissions");
-    const newPermissions = [
-      ...new Set([...currentPermissions, ...groupPermissions]),
-    ];
-    form.setValue("permissions", newPermissions);
-  };
-
-  const handleDeselectAll = (group: string) => {
-    const groupPermissions = permissionsData?.[group] || [];
-
-    const currentPermissions = form.getValues("permissions");
-    const newPermissions = currentPermissions.filter(
-      (p) => !groupPermissions.includes(p)
-    );
-    form.setValue("permissions", newPermissions);
-  };
-
-  const isGroupSelected = (group: string) => {
-    const groupPermissions = permissionsData?.[group] || [];
-
-    const currentPermissions = form.getValues("permissions");
-    return groupPermissions.every((p: string) =>
-      currentPermissions.includes(p)
-    );
-  };
-
-  const isGroupPartiallySelected = (group: string) => {
-    const groupPermissions = permissionsData?.[group] || [];
-
-    const currentPermissions = form.getValues("permissions");
-    const selectedCount = groupPermissions.filter((p: string) =>
-      currentPermissions.includes(p)
-    ).length;
-    return selectedCount > 0 && selectedCount < groupPermissions.length;
-  };
-
-  const hasAnySelectedInGroup = (group: string) => {
-    const groupPermissions = permissionsData?.[group] || [];
-    const currentPermissions = form.getValues("permissions");
-    return groupPermissions.some((p: string) => currentPermissions.includes(p));
+    if (mode === "create") {
+      createRoleMutation.mutate({
+        ...data,
+        workspaceId: currentWorkspace.workspace.id,
+      });
+    } else if (mode === "edit" && role) {
+      updateRoleMutation.mutate({
+        roleId: role.id,
+        workspaceId: currentWorkspace.workspace.id,
+        ...data,
+      });
+    }
   };
 
   const isAllSelectedInGroup = (group: string) => {
@@ -154,26 +179,34 @@ export const RoleCreationModal = ({
   // Data is already grouped, so we just need to transform it for the UI
   const groupedPermissions = permissionsData || {};
 
-  if (!can?.createRoles?.()) {
+  // Check permissions based on mode
+  if (mode === "create" && !can?.createRoles?.()) {
+    return null;
+  }
+  if (mode === "edit" && !can?.editUserRoles?.()) {
     return null;
   }
 
+  const isSubmitting =
+    createRoleMutation.isPending || updateRoleMutation.isPending;
+  const isEditMode = mode === "edit";
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Role
-        </Button>
-      </DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Role</DialogTitle>
+          <DialogTitle>
+            {isEditMode ? "Edit Role" : "Create New Role"}
+          </DialogTitle>
           <DialogDescription>
-            Create a new role with specific permissions for your workspace.
+            {isEditMode
+              ? `Update the role "${role?.name}" and its permissions.`
+              : "Create a new role with specific permissions for your workspace."}
           </DialogDescription>
         </DialogHeader>
 
+        {/* reset form on close */}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -234,26 +267,6 @@ export const RoleCreationModal = ({
                           <h4 className="text-sm font-medium capitalize">
                             {group.replace(/_/g, " ")} Permissions
                           </h4>
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleSelectAll(group)}
-                              disabled={isAllSelectedInGroup(group)}
-                            >
-                              Select All
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeselectAll(group)}
-                              disabled={!hasAnySelectedInGroup(group)}
-                            >
-                              Deselect All
-                            </Button>
-                          </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-4">
@@ -311,19 +324,13 @@ export const RoleCreationModal = ({
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={createRoleMutation.isPending}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={createRoleMutation.isPending}
-                className="gap-2"
-              >
-                {createRoleMutation.isPending && (
-                  <Loader className="h-4 w-4 animate-spin" />
-                )}
-                Create Role
+              <Button type="submit" disabled={isSubmitting} className="gap-2">
+                {isSubmitting && <Loader className="h-4 w-4 animate-spin" />}
+                {isEditMode ? "Update Role" : "Create Role"}
               </Button>
             </DialogFooter>
           </form>
@@ -332,3 +339,10 @@ export const RoleCreationModal = ({
     </Dialog>
   );
 };
+
+// Backward compatibility export
+export const RoleCreationModal = ({
+  onRoleCreated,
+}: {
+  onRoleCreated?: () => void;
+}) => <RoleModal mode="create" onRoleSaved={onRoleCreated} />;

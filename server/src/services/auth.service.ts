@@ -195,11 +195,11 @@ export const loginService = async ({ email, password }: LoginInput) => {
 
 export const changePasswordService = async (
   userId: string,
-  currentPassword: string,
+  email: string,
   newPassword: string
 ) => {
   const user = await db.user.findUnique({
-    where: { id: userId },
+    where: { email },
   });
 
   if (!user) {
@@ -209,38 +209,29 @@ export const changePasswordService = async (
     );
   }
 
-  if (!user.password) {
+  if (!user.mustUpdatePassword) {
     throw new BadRequestException(
-      "No password set for this account",
+      "You cannot change your password",
       ErrorCode.AUTH_USER_NOT_FOUND
     );
   }
 
-  // Verify current password
-  const isCurrentPasswordValid = await compareValue(
-    currentPassword,
-    user.password
-  );
-  if (!isCurrentPasswordValid) {
+  if (user.mustUpdatePassword) {
+    const hashedNewPassword = await hashValue(newPassword);
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedNewPassword,
+        mustUpdatePassword: false,
+      },
+    });
+    return {
+      message: "Password changed successfully",
+    };
+  } else {
     throw new BadRequestException(
-      "Current password is incorrect",
+      "You cannot change your password through this method",
       ErrorCode.AUTH_USER_NOT_FOUND
     );
   }
-
-  // Hash new password
-  const hashedNewPassword = await hashValue(newPassword);
-
-  // Update password and clear mustUpdatePassword flag
-  await db.user.update({
-    where: { id: userId },
-    data: {
-      password: hashedNewPassword,
-      mustUpdatePassword: false,
-    },
-  });
-
-  return {
-    message: "Password changed successfully",
-  };
 };
