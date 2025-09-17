@@ -3,6 +3,11 @@ import * as QueryString from "qs";
 import { db } from "../utils/db";
 import { LeadPriority, LeadSource } from "@prisma/client";
 import { BadRequestException } from "../utils/AppError";
+import {
+  triggerLeadAssignedNotification,
+  triggerLeadStageChangedNotification,
+  triggerLeadConvertedToDealNotification,
+} from "./notification-triggers.service";
 
 interface CreateLeadInput {
   workspaceId: string;
@@ -25,6 +30,7 @@ interface CreateLeadInput {
 // Create lead
 export const createLeadService = async ({
   workspaceId,
+  userId,
   data,
 }: CreateLeadInput) => {
   // Check if pipeline stage exists and belongs to workspace
@@ -118,6 +124,26 @@ export const createLeadService = async ({
       },
     },
   });
+
+  // Get the user who created the lead for notification
+  const createdByUser = await db.user.findUnique({
+    where: { id: userId },
+    select: { name: true },
+  });
+
+  // Trigger notification for lead assignment
+  try {
+    await triggerLeadAssignedNotification(
+      lead.id,
+      lead.assignedTo.id,
+      createdByUser?.name || "System",
+      workspaceId,
+      userId // Pass the actual user ID who created the lead
+    );
+  } catch (error) {
+    console.error("❌ Failed to trigger lead assigned notification:", error);
+    // Don't throw error - notification failure shouldn't break lead creation
+  }
 
   return lead;
 };
@@ -325,6 +351,7 @@ export const getLeadByIdService = async (
 interface UpdateLeadInput {
   workspaceId: string;
   leadId: string;
+  userId: string;
   data: {
     name?: string;
     contactInfo?: string;
@@ -344,6 +371,7 @@ interface UpdateLeadInput {
 export const updateLeadService = async ({
   workspaceId,
   leadId,
+  userId,
   data,
 }: UpdateLeadInput) => {
   // Check if lead exists and belongs to workspace
@@ -444,6 +472,49 @@ export const updateLeadService = async ({
     },
   });
 
+  // Get the user who updated the lead for notifications
+  const updatedByUser = await db.user.findUnique({
+    where: { id: userId },
+    select: { name: true },
+  });
+
+  // Trigger notifications for changes
+  try {
+    // If assignment changed, notify the new assignee
+    if (data.assignedToId && data.assignedToId !== existingLead.assignedToId) {
+      await triggerLeadAssignedNotification(
+        leadId,
+        data.assignedToId,
+        updatedByUser?.name || "System",
+        workspaceId,
+        userId // Pass the actual user ID who made the assignment
+      );
+    }
+
+    // If stage changed, notify the assigned user
+    if (
+      data.pipelineStageId &&
+      data.pipelineStageId !== existingLead.pipelineStageId
+    ) {
+      const newStage = await db.pipelineStage.findUnique({
+        where: { id: data.pipelineStageId },
+        select: { name: true },
+      });
+
+      if (newStage) {
+        await triggerLeadStageChangedNotification(
+          leadId,
+          newStage.name,
+          updatedByUser?.name || "System",
+          workspaceId
+        );
+      }
+    }
+  } catch (error) {
+    console.error("❌ Failed to trigger lead update notifications:", error);
+    // Don't throw error - notification failure shouldn't break lead update
+  }
+
   return updatedLead;
 };
 
@@ -523,6 +594,22 @@ export const updateLeadStageService = async ({
       },
     },
   });
+
+  // Trigger notification for stage change
+  try {
+    await triggerLeadStageChangedNotification(
+      leadId,
+      pipelineStage.name,
+      "System", // Stage changes are typically from drag-and-drop, so we use "System"
+      workspaceId
+    );
+  } catch (error) {
+    console.error(
+      "❌ Failed to trigger lead stage changed notification:",
+      error
+    );
+    // Don't throw error - notification failure shouldn't break stage update
+  }
 
   return updatedLead;
 };

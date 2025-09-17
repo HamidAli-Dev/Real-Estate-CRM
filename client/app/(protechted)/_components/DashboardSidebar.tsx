@@ -10,27 +10,20 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import {
   Bell,
   ClipboardCheck,
-  CreditCard,
-  Fence,
   House,
   LayoutDashboard,
   User,
-  UserRoundCog,
   UsersRound,
-  Building2,
   TrendingUp,
   Settings,
   ChevronRight,
 } from "lucide-react";
 import WorkspaceSelector from "@/app/(protechted)/_components/workspace/WorkspaceSelector";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 const DashboardSidebar = () => {
@@ -93,6 +86,15 @@ const DashboardSidebar = () => {
       path: "/dashboard/user-management",
       icon: UsersRound,
       description: "Team & permissions",
+    },
+    {
+      title: "Notifications",
+      href: `/dashboard/notifications${
+        workspaceId ? `?workspaceId=${workspaceId}` : ""
+      }`,
+      path: "/dashboard/notifications",
+      icon: Bell,
+      description: "Notification settings",
     },
     {
       title: "Workspace Settings",

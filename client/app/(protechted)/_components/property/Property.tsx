@@ -18,7 +18,6 @@ import {
   propertyType,
   createPropertyType,
   editPropertyType,
-  propertyCategoryType,
 } from "@/types/api.types";
 import PropertyForm from "@/app/(protechted)/_components/property/PropertyForm";
 
@@ -35,11 +34,7 @@ const Property = () => {
   );
 
   // Get property categories
-  const {
-    data: categoriesData,
-    isLoading: categoriesLoading,
-    error: categoriesError,
-  } = useQuery({
+  const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
     queryKey: ["propertyCategories", currentWorkspace?.workspace.id],
     queryFn: () => getPropertyCategoriesQueryFn(currentWorkspace!.workspace.id),
     enabled: !!currentWorkspace?.workspace.id,
@@ -99,8 +94,7 @@ const Property = () => {
     }
   };
 
-  const canManageProperties = user?.role === "Owner" || user?.role === "Admin";
-
+  const canManageProperties = user?.role?.name === "Owner";
   if (!currentWorkspace) {
     return (
       <div className="flex items-center justify-center py-8">

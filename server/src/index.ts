@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express, { Request, Response } from "express";
+import { createServer } from "http";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import passport from "passport";
@@ -19,12 +20,14 @@ import propertyRoutes from "./routes/property.routes";
 import leadRoutes from "./routes/lead.routes";
 import pipelineRoutes from "./routes/pipeline.routes";
 import roleRoutes from "./routes/role.routes";
+import notificationRoutes from "./routes/notification.routes";
+import { initializeSocketService } from "./services/socket.service";
 
 const app = express();
 
 // Security middleware
 app.use(securityHeaders);
-app.use(apiRateLimit);
+// app.use(apiRateLimit);
 
 app.use(
   cors({
@@ -54,11 +57,19 @@ app.use("/api/v1/properties", propertyRoutes);
 app.use("/api/v1/leads", leadRoutes);
 app.use("/api/v1/pipeline", pipelineRoutes);
 app.use("/api/v1/roles", roleRoutes);
+app.use("/api/v1", notificationRoutes);
 
 app.use(errorHandler);
 
-app.listen(APP_CONFIG.PORT, () => {
+// Create HTTP server
+const server = createServer(app);
+
+// Initialize Socket.io service
+initializeSocketService(server);
+
+server.listen(APP_CONFIG.PORT, () => {
   console.log(
-    `Server is running on port ${APP_CONFIG.PORT} in ${APP_CONFIG.NODE_ENV} mode`
+    `🚀 Server is running on port ${APP_CONFIG.PORT} in ${APP_CONFIG.NODE_ENV} mode`
   );
+  console.log(`🔌 WebSocket server initialized for real-time notifications`);
 });

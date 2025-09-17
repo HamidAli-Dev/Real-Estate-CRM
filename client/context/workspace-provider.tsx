@@ -98,14 +98,13 @@ export const WorkspaceProvider = ({
     if (
       user &&
       !authLoading &&
-      workspacesData !== undefined && // Check if data has been fetched
+      workspacesData !== undefined &&
       workspacesData.length > 0 &&
-      !workspaceId &&
-      pathname === "/dashboard"
+      !workspaceId
     ) {
       // User has workspaces but no workspaceId in URL, select the first one
       const firstWorkspace = workspacesData[0];
-      router.replace(`/dashboard?workspaceId=${firstWorkspace.workspace.id}`);
+      router.replace(`${pathname}?workspaceId=${firstWorkspace.workspace.id}`);
     }
   }, [user, authLoading, workspacesData, workspaceId, pathname, router]);
 

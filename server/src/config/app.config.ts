@@ -12,27 +12,13 @@ const appConfig = () => ({
   SMTP_SECURE: getEnv("SMTP_SECURE", "false"), // true for 465, false for other ports
   SMTP_USER: getEnv("SMTP_USER", ""),
   SMTP_PASS: getEnv("SMTP_PASS", ""),
-  FRONTEND_BASE_URL: getEnv("FRONTEND_BASE_URL", "http://localhost:3000"),
+  CLIENT_BASE_URL: getEnv("CLIENT_BASE_URL", "http://localhost:3000"),
   SMTP_FROM: getEnv("EMAIL_FROM", "noreply@example.com"),
 
   // Cloudinary
   CLOUDINARY_CLOUD_NAME: getEnv("CLOUDINARY_CLOUD_NAME", ""),
   CLOUDINARY_API_KEY: getEnv("CLOUDINARY_API_KEY", ""),
   CLOUDINARY_API_SECRET: getEnv("CLOUDINARY_API_SECRET", ""),
-
-  // stripe
-  STRIPE_BASIC_PLAN_STRIPE_PRICE_ID: getEnv(
-    "STRIPE_BASIC_PLAN_STRIPE_PRICE_ID",
-    "price_basic_123"
-  ),
-  STRIPE_STANDARD_PLAN_STRIPE_PRICE_ID: getEnv(
-    "STRIPE_STANDARD_PLAN_STRIPE_PRICE_ID",
-    "price_standard_123"
-  ),
-  STRIPE_PRO_PLAN_STRIPE_PRICE_ID: getEnv(
-    "STRIPE_PRO_PLAN_STRIPE_PRICE_ID",
-    "price_pro_123"
-  ),
 });
 
 export const APP_CONFIG = appConfig();

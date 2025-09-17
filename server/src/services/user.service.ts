@@ -55,12 +55,6 @@ export const getCurrentUserService = async (userId: string) => {
       },
     };
 
-    console.log("🔍 getCurrentUserService - User data:", result.user);
-    console.log(
-      "🔍 getCurrentUserService - mustUpdatePassword:",
-      user.mustUpdatePassword
-    );
-
     return result;
   }
 
@@ -82,15 +76,6 @@ export const getCurrentUserService = async (userId: string) => {
       mustUpdatePassword: user.mustUpdatePassword,
     },
   };
-
-  console.log(
-    "🔍 getCurrentUserService (no workspaces) - User data:",
-    result.user
-  );
-  console.log(
-    "🔍 getCurrentUserService (no workspaces) - mustUpdatePassword:",
-    user.mustUpdatePassword
-  );
 
   return result;
 };

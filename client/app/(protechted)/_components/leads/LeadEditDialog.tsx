@@ -170,7 +170,11 @@ export const LeadEditDialog: React.FC<LeadEditDialogProps> = ({
               properties={properties}
               workspaceUsers={workspaceUsers}
               currentUserId={user?.id || ""}
-              currentUserRole={user?.role || ""}
+              currentUserRole={
+                typeof user?.role === "string"
+                  ? user.role
+                  : user?.role?.name || ""
+              }
               mode="edit"
               isLoading={updateLead.isPending}
               onSubmit={handleSave}

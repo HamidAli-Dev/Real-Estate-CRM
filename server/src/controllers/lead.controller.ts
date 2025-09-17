@@ -98,6 +98,7 @@ export const updateLeadController = asyncHandler(
     const updatedLead = await updateLeadService({
       workspaceId,
       leadId,
+      userId: req.user.id,
       data: updateData,
     });
 

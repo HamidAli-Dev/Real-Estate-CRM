@@ -1,6 +1,10 @@
 import { AppError } from "../utils/AppError";
 import { asyncHandler } from "../utils/asyncHandler";
 import { db } from "../utils/db";
+import {
+  triggerPropertyListedNotification,
+  triggerPropertyStatusChangedNotification,
+} from "./notification-triggers.service";
 
 // Helper function to get or create default property categories
 const getOrCreateDefaultCategories = async (workspaceId: string) => {
@@ -132,6 +136,21 @@ export const createPropertyService = asyncHandler(async (req, res) => {
         },
       },
     });
+
+    // Trigger notification for new property listing
+    try {
+      await triggerPropertyListedNotification(
+        result.id,
+        propertyWithImages?.listedBy.name || "System",
+        data.workspaceId
+      );
+    } catch (error) {
+      console.error(
+        "❌ Failed to trigger property listed notification:",
+        error
+      );
+      // Don't throw error - notification failure shouldn't break property creation
+    }
 
     res.status(201).json({
       success: true,
@@ -355,6 +374,24 @@ export const updatePropertyService = asyncHandler(async (req, res) => {
         },
       },
     });
+
+    // Trigger notification for property status change if status was updated
+    try {
+      if (data.status && data.status !== existingProperty.status) {
+        await triggerPropertyStatusChangedNotification(
+          id,
+          data.status,
+          req.user.email || "System",
+          existingProperty.workspaceId
+        );
+      }
+    } catch (error) {
+      console.error(
+        "❌ Failed to trigger property status changed notification:",
+        error
+      );
+      // Don't throw error - notification failure shouldn't break property update
+    }
 
     res.status(200).json({
       success: true,

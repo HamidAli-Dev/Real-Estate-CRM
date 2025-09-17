@@ -397,3 +397,149 @@ export interface propertyImageType {
   propertyId: string;
   createdAt: string;
 }
+
+// Notification Types
+export type NotificationType =
+  | "LEAD_ASSIGNED"
+  | "LEAD_STAGE_CHANGED"
+  | "LEAD_PRIORITY_CHANGED"
+  | "LEAD_FOLLOW_UP_REMINDER"
+  | "LEAD_CONVERTED_TO_DEAL"
+  | "PROPERTY_LISTED"
+  | "PROPERTY_PRICE_CHANGED"
+  | "PROPERTY_STATUS_CHANGED"
+  | "PROPERTY_VIEWING_SCHEDULED"
+  | "PROPERTY_IMAGES_UPLOADED"
+  | "DEAL_CREATED"
+  | "DEAL_STAGE_CHANGED"
+  | "DEAL_CLOSED"
+  | "DEAL_NEGOTIATION_UPDATE"
+  | "USER_INVITED"
+  | "USER_JOINED"
+  | "USER_ROLE_CHANGED"
+  | "USER_LEFT_WORKSPACE"
+  | "ACTIVITY_SCHEDULED"
+  | "ACTIVITY_REMINDER"
+  | "ACTIVITY_COMPLETED"
+  | "WORKSPACE_SETTINGS_UPDATED"
+  | "SYSTEM_ALERT"
+  | "SUBSCRIPTION_UPDATE";
+
+export type NotificationCategory =
+  | "LEADS"
+  | "PROPERTIES"
+  | "DEALS"
+  | "USERS"
+  | "ACTIVITIES"
+  | "WORKSPACE"
+  | "SYSTEM";
+
+export type NotificationPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+
+export type NotificationStatus = "UNREAD" | "READ" | "ARCHIVED";
+
+export interface NotificationActionButton {
+  label: string;
+  action: string;
+  url: string;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  category: NotificationCategory;
+  priority: NotificationPriority;
+  status: NotificationStatus;
+  isRead: boolean;
+  readAt?: Date;
+  relatedEntityType?: string;
+  relatedEntityId?: string;
+  actionButtons?: NotificationActionButton[];
+  metadata?: any;
+  workspaceId: string;
+  userId: string;
+  triggeredById?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  triggeredBy?: {
+    id: string;
+    name: string;
+  };
+  workspace: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface NotificationStats {
+  total: number;
+  unread: number;
+  byCategory: Record<string, number>;
+  byPriority: Record<string, number>;
+}
+
+export interface NotificationFilters {
+  type?: NotificationType;
+  category?: NotificationCategory;
+  priority?: NotificationPriority;
+  status?: NotificationStatus;
+  isRead?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export interface UserNotificationPreferences {
+  id: string;
+  userId: string;
+  leadNotifications: boolean;
+  propertyNotifications: boolean;
+  dealNotifications: boolean;
+  userNotifications: boolean;
+  activityNotifications: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WorkspaceNotificationSettings {
+  id: string;
+  workspaceId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  // branding
+  notificationBranding: {
+    primaryColor: string;
+    secondaryColor: string;
+    logoUrl: string;
+    companyName: string;
+  };
+}
+
+export interface CreateNotificationData {
+  title: string;
+  message: string;
+  type: NotificationType;
+  category: NotificationCategory;
+  priority?: NotificationPriority;
+  workspaceId: string;
+  userId: string;
+  triggeredById?: string;
+  relatedEntityType?: string;
+  relatedEntityId?: string;
+  actionButtons?: NotificationActionButton[];
+  metadata?: any;
+}
+
+export interface UpdateNotificationPreferencesData {
+  leadNotifications?: boolean;
+  propertyNotifications?: boolean;
+  dealNotifications?: boolean;
+  userNotifications?: boolean;
+  activityNotifications?: boolean;
+}

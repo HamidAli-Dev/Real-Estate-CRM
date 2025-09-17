@@ -1,9 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import {
-  Bell,
   Search,
-  Building2,
   Settings,
   User,
   LogOut,
@@ -12,9 +10,6 @@ import {
   Moon,
   ChevronDown,
   MessageSquare,
-  Calendar,
-  Target,
-  Home,
 } from "lucide-react";
 
 import {
@@ -30,8 +25,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthContext } from "@/context/auth-provider";
-import { useWorkspaceContext } from "@/context/workspace-provider";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
+import NotificationDropdown from "@/app/(protechted)/_components/notifications/NotificationDropdown";
+import { useSocketContext } from "@/context/socket-provider";
 
 const TopBar = () => {
   const [isOpenDropdown, setIsOpenDropdown] = useState(false);
@@ -39,7 +35,7 @@ const TopBar = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   const { user, logout } = useAuthContext();
-  const { currentWorkspace } = useWorkspaceContext();
+  const { isConnected } = useSocketContext();
   const { open } = useSidebar();
 
   const handleLogout = async () => {
@@ -55,57 +51,6 @@ const TopBar = () => {
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
     // TODO: Implement theme switching
-  };
-
-  // Mock notifications data
-  const notifications = [
-    {
-      id: 1,
-      type: "lead",
-      message: "New lead assigned: Downtown Condo",
-      time: "2 min ago",
-      unread: true,
-    },
-    {
-      id: 2,
-      type: "meeting",
-      message: "Property viewing scheduled for tomorrow",
-      time: "1 hour ago",
-      unread: true,
-    },
-    {
-      id: 3,
-      type: "deal",
-      message: "Deal closed: 123 Main Street",
-      time: "3 hours ago",
-      unread: false,
-    },
-  ];
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case "lead":
-        return <Target className="w-4 h-4" />;
-      case "meeting":
-        return <Calendar className="w-4 h-4" />;
-      case "deal":
-        return <Home className="w-4 h-4" />;
-      default:
-        return <Bell className="w-4 h-4" />;
-    }
-  };
-
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case "lead":
-        return "bg-blue-100 text-blue-600";
-      case "meeting":
-        return "bg-green-100 text-green-600";
-      case "deal":
-        return "bg-purple-100 text-purple-600";
-      default:
-        return "bg-gray-100 text-gray-600";
-    }
   };
 
   return (
@@ -126,7 +71,11 @@ const TopBar = () => {
                     {user?.name?.charAt(0).toUpperCase()}
                   </span>
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                <div
+                  className={`absolute -bottom-1 -right-1 w-4 h-4 ${
+                    isConnected ? "bg-green-500" : "bg-red-500"
+                  } rounded-full border-2 border-white`}
+                ></div>
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">
@@ -170,72 +119,7 @@ const TopBar = () => {
             </Button>
 
             {/* Notifications */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="relative p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-200"
-                >
-                  <Bell className="w-5 h-5" />
-                  {notifications.filter((n) => n.unread).length > 0 && (
-                    <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                      {notifications.filter((n) => n.unread).length}
-                    </Badge>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel className="flex items-center justify-between">
-                  <span>Notifications</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-blue-600 hover:text-blue-700"
-                  >
-                    Mark all read
-                  </Button>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <div className="max-h-64 overflow-y-auto">
-                  {notifications.map((notification) => (
-                    <DropdownMenuItem
-                      key={notification.id}
-                      className="flex items-start space-x-3 p-3 cursor-pointer"
-                    >
-                      <div
-                        className={`p-2 rounded-full ${getNotificationColor(
-                          notification.type
-                        )}`}
-                      >
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p
-                          className={`text-sm ${
-                            notification.unread
-                              ? "font-medium text-gray-900"
-                              : "text-gray-600"
-                          }`}
-                        >
-                          {notification.message}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {notification.time}
-                        </p>
-                      </div>
-                      {notification.unread && (
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-center text-blue-600 hover:text-blue-700 cursor-pointer">
-                  View all notifications
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <NotificationDropdown className="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-200 relative" />
 
             {/* Messages */}
             <Button

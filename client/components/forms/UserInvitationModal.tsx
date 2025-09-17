@@ -36,7 +36,6 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { usePermission } from "@/hooks/usePermission";
-import { generateTemporaryPassword } from "@/lib/password-generator";
 import { getWorkspaceRolesQueryFn, inviteUserMutationFn } from "@/lib/api";
 import { inviteUserType } from "@/types/api.types";
 

@@ -567,7 +567,7 @@ export const StageColumn: React.FC<StageColumnProps> = ({
               workspaceUsers={workspaceUsers}
               properties={properties}
               currentUserId={user?.id || ""}
-              currentUserRole={user?.role || ""}
+              currentUserRole={user?.role?.name || ""}
             />
           </div>
         </DialogContent>

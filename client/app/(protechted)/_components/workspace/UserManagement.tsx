@@ -132,8 +132,6 @@ const UserManagement = () => {
     gcTime: 0, // Don't cache the data
   });
 
-  console.log("workspaceRoles💜:", rolesData);
-
   // Get permissions
   const { data: permissionsData } = useQuery({
     queryKey: ["permissions"],

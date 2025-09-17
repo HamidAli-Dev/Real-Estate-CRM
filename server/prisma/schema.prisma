@@ -14,19 +14,20 @@ model Workspace {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  users         UserWorkspace[]
-  roles         Role[] // Workspace-specific roles
-  properties    Property[]
-  leads         Lead[]
-  deals         Deal[]
-  activities    Activity[]
-  files         File[]
-  categories    PropertyCategory[]
-  notifications Notification[]
-  settings      WorkspaceSettings?
-  subscription  Subscription?
-  PipelineStage PipelineStage[]
-  invitations   UserInvitation[]
+  users                UserWorkspace[]
+  roles                Role[] // Workspace-specific roles
+  properties           Property[]
+  leads                Lead[]
+  deals                Deal[]
+  activities           Activity[]
+  files                File[]
+  categories           PropertyCategory[]
+  notifications        Notification[]
+  settings             WorkspaceSettings?
+  subscription         Subscription?
+  PipelineStage        PipelineStage[]
+  invitations          UserInvitation[]
+  notificationSettings WorkspaceNotificationSettings?
 }
 
 model User {
@@ -36,13 +37,15 @@ model User {
   password           String?
   mustUpdatePassword Boolean @default(false) // temp password flag
 
-  workspaces    UserWorkspace[]
-  properties    Property[]       @relation("ListedBy")
-  leads         Lead[]           @relation("AssignedTo")
-  activities    Activity[]
-  notifications Notification[]
-  RefreshToken  RefreshToken[]
-  invitations   UserInvitation[] @relation("InvitedBy")
+  workspaces              UserWorkspace[]
+  properties              Property[]                   @relation("ListedBy")
+  leads                   Lead[]                       @relation("AssignedTo")
+  activities              Activity[]
+  notifications           Notification[]
+  RefreshToken            RefreshToken[]
+  invitations             UserInvitation[]             @relation("InvitedBy")
+  triggeredNotifications  Notification[]               @relation("NotificationTriggeredBy")
+  notificationPreferences UserNotificationPreferences?
 }
 
 model PipelineStage {
@@ -321,14 +324,100 @@ model LeadProperty {
 }
 
 model Notification {
-  id           String    @id @default(uuid())
-  notification String
-  workspace    Workspace @relation(fields: [workspaceId], references: [id])
-  workspaceId  String
-  user         User      @relation(fields: [userId], references: [id])
-  userId       String
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id       String               @id @default(uuid())
+  title    String
+  message  String
+  type     NotificationType
+  category NotificationCategory
+  priority NotificationPriority @default(MEDIUM)
+  status   NotificationStatus   @default(UNREAD)
+  isRead   Boolean              @default(false)
+  readAt   DateTime?
+
+  // Related entity references (optional)
+  relatedEntityType String? // 'lead', 'property', 'deal', 'user', 'activity'
+  relatedEntityId   String? // ID of the related entity
+
+  // Action buttons for notifications
+  actionButtons Json? // Array of action button objects
+
+  // Notification metadata
+  metadata Json? // Additional data for the notification
+
+  // Relationships
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+
+  // Optional: who triggered this notification
+  triggeredBy   User?   @relation("NotificationTriggeredBy", fields: [triggeredById], references: [id])
+  triggeredById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([workspaceId, createdAt])
+  @@index([type, category])
+}
+
+// Notification types for different CRM events
+enum NotificationType {
+  LEAD_ASSIGNED
+  LEAD_STAGE_CHANGED
+  LEAD_PRIORITY_CHANGED
+  LEAD_FOLLOW_UP_REMINDER
+  LEAD_CONVERTED_TO_DEAL
+
+  PROPERTY_LISTED
+  PROPERTY_PRICE_CHANGED
+  PROPERTY_STATUS_CHANGED
+  PROPERTY_VIEWING_SCHEDULED
+  PROPERTY_IMAGES_UPLOADED
+
+  DEAL_CREATED
+  DEAL_STAGE_CHANGED
+  DEAL_CLOSED
+  DEAL_NEGOTIATION_UPDATE
+
+  USER_INVITED
+  USER_JOINED
+  USER_ROLE_CHANGED
+  USER_LEFT_WORKSPACE
+
+  ACTIVITY_SCHEDULED
+  ACTIVITY_REMINDER
+  ACTIVITY_COMPLETED
+
+  WORKSPACE_SETTINGS_UPDATED
+  SYSTEM_ALERT
+  SUBSCRIPTION_UPDATE
+}
+
+// Notification categories for grouping
+enum NotificationCategory {
+  LEADS
+  PROPERTIES
+  DEALS
+  USERS
+  ACTIVITIES
+  WORKSPACE
+}
+
+// Notification priority levels
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// Notification read status
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
 }
 
 model WorkspaceSettings {
@@ -338,6 +427,36 @@ model WorkspaceSettings {
   onboardingCompleted Boolean   @default(false)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+}
+
+// User notification preferences
+model UserNotificationPreferences {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique
+
+  // Email notification preferences
+  emailNotifications Boolean @default(true)
+
+  // Category-specific preferences
+  leadNotifications     Boolean @default(true)
+  propertyNotifications Boolean @default(true)
+  dealNotifications     Boolean @default(true)
+  userNotifications     Boolean @default(true)
+  activityNotifications Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Workspace-level notification settings
+model WorkspaceNotificationSettings {
+  id          String    @id @default(uuid())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String    @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Subscription {

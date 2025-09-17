@@ -9,11 +9,13 @@ import {
 import { BadRequestException } from "../utils/AppError";
 import {
   generateInvitationToken,
-  generateInvitationLink,
   getInvitationExpiryTime,
 } from "../utils/invitation-token";
-import { APP_CONFIG } from "../config/app.config";
 import { hashValue } from "../utils/bcrypt";
+import {
+  triggerUserInvitedNotification,
+  triggerUserJoinedNotification,
+} from "./notification-triggers.service";
 
 export const createWorkspaceService = async (
   data: CreateWorkspaceInput,
@@ -392,6 +394,20 @@ export const inviteUserToWorkspaceService = async (
       temporaryPassword,
     };
   });
+
+  // Trigger notification for user invitation
+  try {
+    await triggerUserInvitedNotification(
+      data.email,
+      data.name,
+      userWorkspace.user.name,
+      result.role.name,
+      workspaceId
+    );
+  } catch (error) {
+    console.error("❌ Failed to trigger user invited notification:", error);
+    // Don't throw error - notification failure shouldn't break invitation
+  }
 
   return {
     message: "User invited successfully",
