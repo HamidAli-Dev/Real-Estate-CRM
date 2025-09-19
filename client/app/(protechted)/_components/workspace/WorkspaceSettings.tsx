@@ -31,7 +31,7 @@ const WorkspaceSettings = () => {
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const { currentWorkspace, userWorkspaces } = useWorkspaceContext();
+  const { currentWorkspace } = useWorkspaceContext();
   const { user } = useAuthContext();
 
   // Get workspace users for statistics
@@ -42,7 +42,10 @@ const WorkspaceSettings = () => {
   });
 
   const workspaceUsers = usersData || [];
-  const isOwner = user?.role?.name === "Owner";
+
+  console.log("workspaceUsers", workspaceUsers);
+
+  const isOwner = user?.user.role?.name === "Owner";
   const canEdit = isOwner;
 
   if (!currentWorkspace) {
@@ -161,17 +164,67 @@ const WorkspaceSettings = () => {
                 <div className="text-center">
                   <div className="text-2xl font-bold text-green-600">
                     {
-                      workspaceUsers.filter((u: any) => u.role === "Admin")
-                        .length
+                      workspaceUsers.filter(
+                        (u: {
+                          id: string;
+                          userId: string;
+                          workspaceId: string;
+                          roleId: string;
+                          role: {
+                            id: string;
+                            name: string;
+                            isSystem: boolean;
+                            createdAt: string;
+                            updatedAt: string;
+                            rolePermissions: {
+                              id: string;
+                              roleId: string;
+                              permissionId: string;
+                              permission: {
+                                id: string;
+                                name: string;
+                                group: string;
+                                createdAt: string;
+                                updatedAt: string;
+                              }[];
+                            };
+                          };
+                        }) => u.role.name === "Owner"
+                      ).length
                     }
                   </div>
-                  <div className="text-sm text-gray-500">Admins</div>
+                  <div className="text-sm text-gray-500">Owners</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-yellow-600">
                     {
-                      workspaceUsers.filter((u: any) => u.role === "Manager")
-                        .length
+                      workspaceUsers.filter(
+                        (u: {
+                          id: string;
+                          userId: string;
+                          workspaceId: string;
+                          roleId: string;
+                          role: {
+                            id: string;
+                            name: string;
+                            isSystem: boolean;
+                            createdAt: string;
+                            updatedAt: string;
+                            rolePermissions: {
+                              id: string;
+                              roleId: string;
+                              permissionId: string;
+                              permission: {
+                                id: string;
+                                name: string;
+                                group: string;
+                                createdAt: string;
+                                updatedAt: string;
+                              }[];
+                            };
+                          };
+                        }) => u.role.name === "Manager"
+                      ).length
                     }
                   </div>
                   <div className="text-sm text-gray-500">Managers</div>
@@ -179,8 +232,33 @@ const WorkspaceSettings = () => {
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-600">
                     {
-                      workspaceUsers.filter((u: any) => u.role === "Agent")
-                        .length
+                      workspaceUsers.filter(
+                        (u: {
+                          id: string;
+                          userId: string;
+                          workspaceId: string;
+                          roleId: string;
+                          role: {
+                            id: string;
+                            name: string;
+                            isSystem: boolean;
+                            createdAt: string;
+                            updatedAt: string;
+                            rolePermissions: {
+                              id: string;
+                              roleId: string;
+                              permissionId: string;
+                              permission: {
+                                id: string;
+                                name: string;
+                                group: string;
+                                createdAt: string;
+                                updatedAt: string;
+                              }[];
+                            };
+                          };
+                        }) => u.role.name === "Agent"
+                      ).length
                     }
                   </div>
                   <div className="text-sm text-gray-500">Agents</div>

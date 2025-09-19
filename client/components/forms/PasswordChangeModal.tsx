@@ -25,11 +25,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { API } from "@/lib/api";
+import { changePasswordMutationFn } from "@/lib/api";
 
 const passwordChangeSchema = z
   .object({
-    currentPassword: z.string().min(1, "Current password is required"),
+    email: z.string().min(1, "Email is required"),
     newPassword: z
       .string()
       .min(8, "Password must be at least 8 characters")
@@ -60,14 +60,13 @@ export const PasswordChangeModal = ({
   onOpenChange,
   onPasswordChanged,
 }: PasswordChangeModalProps) => {
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm<PasswordChangeFormData>({
     resolver: zodResolver(passwordChangeSchema),
     defaultValues: {
-      currentPassword: "",
+      email: "",
       newPassword: "",
       confirmPassword: "",
     },
@@ -75,23 +74,21 @@ export const PasswordChangeModal = ({
 
   // Change password mutation
   const changePasswordMutation = useMutation({
-    mutationFn: API.changePasswordMutationFn,
+    mutationFn: changePasswordMutationFn,
     onSuccess: () => {
       toast.success("Password changed successfully");
       form.reset();
       onOpenChange(false);
       onPasswordChanged?.();
     },
-    onError: (error: any) => {
-      toast.error(
-        error?.response?.data?.message || "Failed to change password"
-      );
+    onError: (error) => {
+      toast.error(error?.message || "Failed to change password");
     },
   });
 
   const onSubmit = (data: PasswordChangeFormData) => {
     changePasswordMutation.mutate({
-      currentPassword: data.currentPassword,
+      email: data.email,
       newPassword: data.newPassword,
     });
   };
@@ -121,34 +118,18 @@ export const PasswordChangeModal = ({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="currentPassword"
+              name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Current Password</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input
-                        type={showCurrentPassword ? "text" : "password"}
-                        placeholder="Enter your current password"
+                        type={"email"}
+                        placeholder="Enter your email"
                         {...field}
                         disabled={changePasswordMutation.isPending}
                       />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() =>
-                          setShowCurrentPassword(!showCurrentPassword)
-                        }
-                        disabled={changePasswordMutation.isPending}
-                      >
-                        {showCurrentPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
                     </div>
                   </FormControl>
                   <FormMessage />

@@ -171,10 +171,8 @@ export const AssignPermissionsModal: React.FC<AssignPermissionsModalProps> = ({
       onSuccess?.();
       queryClient.invalidateQueries({ queryKey: ["workspace-roles"] });
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || "Failed to update permissions"
-      );
+    onError: (error) => {
+      toast.error(error?.message || "Failed to update permissions");
     },
   });
 

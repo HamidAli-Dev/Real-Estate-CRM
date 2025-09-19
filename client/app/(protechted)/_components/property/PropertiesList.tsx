@@ -38,13 +38,13 @@ const PropertiesList = ({ onEditProperty }: PropertiesListProps) => {
     data: propertiesData,
     isLoading: propertiesLoading,
     error: propertiesError,
-  } = useQuery({
+  } = useQuery<propertyType[]>({
     queryKey: ["properties", currentWorkspace?.workspace.id],
     queryFn: () => getPropertiesQueryFn(currentWorkspace!.workspace.id),
     enabled: !!currentWorkspace?.workspace.id,
   });
 
-  const canManageProperties = user?.role === "Owner" || user?.role === "Admin";
+  const canManageProperties = user?.user.role.name === "Owner";
 
   // Delete property mutation
   const { mutate: deleteProperty, isPending: isDeleting } = useMutation({
@@ -56,14 +56,8 @@ const PropertiesList = ({ onEditProperty }: PropertiesListProps) => {
         queryKey: ["properties", currentWorkspace?.workspace.id],
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error("❌ Property deletion failed:", error);
-      console.error("🔍 Error details:", {
-        message: error?.message,
-        data: error?.data,
-        response: error?.response,
-        stack: error?.stack,
-      });
       toast.error("Failed to delete property", {
         description: error?.message || "An unexpected error occurred",
       });
@@ -155,7 +149,7 @@ const PropertiesList = ({ onEditProperty }: PropertiesListProps) => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Property</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{propertyToDelete?.title}"?
+              Are you sure you want to delete {`"${propertyToDelete?.title}"`}?
               <br />
               <span className="text-sm text-gray-500 mt-2 block">
                 This action cannot be undone. This will permanently delete the

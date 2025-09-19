@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader, UserPlus, Copy, Check } from "lucide-react";
+import { Loader, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +36,11 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { usePermission } from "@/hooks/usePermission";
-import { getWorkspaceRolesQueryFn, inviteUserMutationFn } from "@/lib/api";
+import {
+  getWorkspaceRolesQueryFn,
+  getWorkspaceRolesQueryResponseType,
+  inviteUserMutationFn,
+} from "@/lib/api";
 import { inviteUserType } from "@/types/api.types";
 
 const inviteUserSchema = z.object({
@@ -81,14 +85,14 @@ export const UserInvitationModal = ({
   // Invite user mutation
   const inviteUserMutation = useMutation({
     mutationFn: inviteUserMutationFn,
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success("User invited successfully");
       form.reset();
       setOpen(false);
       onUserInvited?.();
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || "Failed to invite user");
+    onError: (error) => {
+      toast.error(error?.message || "Failed to invite user");
     },
   });
 
@@ -180,18 +184,23 @@ export const UserInvitationModal = ({
                           Loading roles...
                         </SelectItem>
                       ) : (
-                        rolesData?.map((role: any) => (
-                          <SelectItem key={role.id} value={role.id}>
-                            <div className="flex items-center gap-2">
-                              <span>{role.name}</span>
-                              {role.isSystem && (
-                                <Badge variant="secondary" className="text-xs">
-                                  System
-                                </Badge>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))
+                        rolesData?.map(
+                          (role: getWorkspaceRolesQueryResponseType) => (
+                            <SelectItem key={role.id} value={role.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{role.name}</span>
+                                {role.isSystem && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    System
+                                  </Badge>
+                                )}
+                              </div>
+                            </SelectItem>
+                          )
+                        )
                       )}
                     </SelectContent>
                   </Select>

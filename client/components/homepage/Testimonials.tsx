@@ -26,8 +26,9 @@ const Testimonials = () => {
               </div>
             </div>
             <p className="text-gray-700 leading-relaxed">
-              "RealCRM transformed our agency operations. We've increased our
-              conversion rate by 35% and our team is more organized than ever"
+              &quot;RealCRM transformed our agency operations. We saw a 25%
+              increase in leads and a 20% increase in conversion rate. Our team
+              is more organized than ever.&quot;
             </p>
             <div className="flex mt-4">
               <Star
@@ -64,8 +65,8 @@ const Testimonials = () => {
               </div>
             </div>
             <p className="text-gray-700 leading-relaxed">
-              "The multi-tenant support is perfect for our growing business. We
-              can manage multiple locations seamlessly."
+              &quot;The multi-tenant support is perfect for our growing
+              business. We can manage multiple locations seamlessly.&quot;
             </p>
             <div className="flex mt-4">
               <Star
@@ -102,8 +103,8 @@ const Testimonials = () => {
               </div>
             </div>
             <p className="text-gray-700 leading-relaxed">
-              "The lead pipeline visualization helps me prioritize my time and
-              close more deals. It's intuitive and powerful."
+              &quot;The lead pipeline visualization helps me prioritize my time
+              and close more deals. It&apos;s intuitive and powerful.&quot;
             </p>
             <div className="flex mt-4">
               <Star

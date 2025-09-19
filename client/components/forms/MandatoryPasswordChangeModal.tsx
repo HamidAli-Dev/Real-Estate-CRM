@@ -14,7 +14,6 @@ import {
   AlertTriangle,
   CheckCircle,
   Lock,
-  Key,
   Sparkles,
   Mail,
 } from "lucide-react";
@@ -64,7 +63,6 @@ export const MandatoryPasswordChangeModal = ({
   open,
   onPasswordChanged,
 }: MandatoryPasswordChangeModalProps) => {
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
@@ -110,10 +108,8 @@ export const MandatoryPasswordChangeModal = ({
         setIsAnimating(false);
       }, 1500);
     },
-    onError: (error: any) => {
-      toast.error(
-        error?.response?.data?.message || "Failed to change password"
-      );
+    onError: (error) => {
+      toast.error(error?.message || "Failed to change password");
     },
   });
 

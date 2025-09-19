@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Building2, Facebook, Linkedin, Twitter, X } from "lucide-react";
+import { Building2, Facebook, Linkedin, Twitter } from "lucide-react";
 
 import Header from "./header";
 import Hero from "./Hero";

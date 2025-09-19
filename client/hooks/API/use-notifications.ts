@@ -69,11 +69,6 @@ export const useNotificationStats = (workspaceId: string) => {
     queryKey: ["notificationStats", workspaceId],
     queryFn: async () => {
       try {
-        console.log(
-          "📊 Fetching notification stats for workspace:",
-          workspaceId
-        );
-
         const response = await API.get(
           `/workspace/${workspaceId}/notifications/stats`
         );

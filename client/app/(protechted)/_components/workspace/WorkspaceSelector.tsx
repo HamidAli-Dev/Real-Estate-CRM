@@ -102,7 +102,7 @@ const WorkspaceSelector = () => {
     mutationFn: createWorkspaceMutationFn,
     onSuccess: (data) => {
       // Defensive check for data structure
-      if (!data || !data.workspace) {
+      if (!data || !data.data.workspace) {
         console.error("❌ Unexpected data structure:", data);
         toast.error("Creation Failed", {
           description: "Received unexpected response format from server",
@@ -111,7 +111,7 @@ const WorkspaceSelector = () => {
       }
 
       toast.success("Workspace Created!", {
-        description: `Your workspace "${data.workspace.name}" has been created successfully.`,
+        description: `Your workspace "${data.data.workspace.name}" has been created successfully.`,
       });
       setIsCreateOpen(false);
       form.reset();
@@ -120,11 +120,10 @@ const WorkspaceSelector = () => {
       queryClient.invalidateQueries({ queryKey: ["userWorkspaces"] });
 
       // Switch to the new workspace
-      switchWorkspace(data.workspace.id);
+      switchWorkspace(data.data.workspace.id);
     },
-    onError: (error: any) => {
-      const errorMessage =
-        error?.data?.message || error?.message || "Failed to create workspace";
+    onError: (error) => {
+      const errorMessage = error?.message || "Failed to create workspace";
       toast.error("Creation Failed", {
         description: errorMessage,
       });
@@ -256,7 +255,7 @@ const WorkspaceSelector = () => {
           <DropdownMenuSeparator />
 
           {/* Create new workspace option - only for Owners */}
-          {user?.role?.name === "Owner" && (
+          {user?.user.role?.name === "Owner" && (
             <AlertDialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem
@@ -328,7 +327,7 @@ const WorkspaceSelector = () => {
           )}
 
           {/* Delete workspace option - only for Owners */}
-          {user?.role?.name === "Owner" && userWorkspaces.length > 1 && (
+          {user?.user.role?.name === "Owner" && userWorkspaces.length > 1 && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem

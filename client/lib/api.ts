@@ -1,11 +1,14 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 
 import {
-  loginType,
-  registerType,
-  loginResponseType,
   createPropertyType,
+  createWorkspaceResponseType,
+  editWorkspaceResponseType,
   editPropertyType,
+  getCurrentUserResponseType,
+  propertyType,
+  propertyCategoryType,
+  userWorkspaceType,
 } from "@/types/api.types";
 import API from "./axios-client";
 
@@ -15,6 +18,20 @@ const refreshAPI = axios.create({
   withCredentials: true, // Need this for cookies
   timeout: 10000,
 });
+
+interface ApiEnvelope<T = unknown> {
+  message?: string;
+  data?: T;
+}
+
+const hasStringMessage = (value: unknown): value is { message: string } => {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "message" in value &&
+    typeof (value as { message: unknown }).message === "string"
+  );
+};
 
 export const registerMutationFn = async (data: {
   name: string;
@@ -33,7 +50,7 @@ export const loginMutationFn = async (data: {
 }) => {
   const response = await API.post("/auth/login", data);
   // Tokens are now set as HTTP-only cookies by the backend
-  return response.data;
+  return (response as ApiEnvelope).data;
 };
 
 export const refreshTokenFn = async (): Promise<{ message: string }> => {
@@ -50,43 +67,35 @@ export const refreshTokenFn = async (): Promise<{ message: string }> => {
   }
 };
 
-export const getCurrentUserQueryFn = async (): Promise<{
-  message: string;
-  user: any;
-}> => {
-  const response = await API.get(`/user/current`);
+export const getCurrentUserQueryFn =
+  async (): Promise<getCurrentUserResponseType> => {
+    const response = await API.get(`/user/current`);
 
-  const result = response as unknown as { message: string; user: any }; // axios interceptor transforms the response
-  return result;
-};
+    return response as unknown as getCurrentUserResponseType;
+  };
 
 // Workspace API functions
 export const createWorkspaceMutationFn = async (data: { name: string }) => {
   const response = await API.post("/workspace/create", data);
 
-  // Since axios interceptor returns res.data, response is already the data object
-  const responseData = response as any;
+  console.log("🚀 createWorkspaceMutationFn response:", response.data);
 
-  if (responseData && responseData.data) {
-    return responseData.data; // Return the actual workspace data
-  } else {
-    throw new Error(responseData?.message || "Failed to create workspace");
-  }
+  return response.data as createWorkspaceResponseType;
 };
 
 export const editWorkspaceMutationFn = async (data: {
   workspaceId: string;
   name: string;
-}) => {
+}): Promise<editWorkspaceResponseType["data"]> => {
   const { workspaceId, ...updateData } = data;
   const response = await API.put(`/workspace/${workspaceId}`, updateData);
 
   // Since axios interceptor returns res.data, response is already the data object
-  const responseData = response as any;
+  const responseData = response as ApiEnvelope;
 
   // Check for the actual response structure: { message: string, data: any }
   if (responseData && responseData.data) {
-    return responseData.data; // Return the actual workspace data
+    return responseData.data as editWorkspaceResponseType["data"]; // Return the actual workspace data
   } else {
     throw new Error(responseData?.message || "Failed to update workspace");
   }
@@ -96,7 +105,7 @@ export const deleteWorkspaceMutationFn = async (workspaceId: string) => {
   const response = await API.delete(`/workspace/${workspaceId}`);
 
   // Since axios interceptor returns res.data, response is already the data object
-  const responseData = response as any;
+  const responseData = response as ApiEnvelope;
 
   // Check for the actual response structure: { message: string, data: any }
   if (responseData && responseData.data) {
@@ -106,29 +115,33 @@ export const deleteWorkspaceMutationFn = async (workspaceId: string) => {
   }
 };
 
-export const getUserWorkspacesQueryFn = async () => {
+export const getUserWorkspacesQueryFn = async (): Promise<
+  userWorkspaceType[]
+> => {
   const response = await API.get("/workspace/user");
 
   // Since axios interceptor returns res.data, response is already the data object
-  const responseData = response as any;
+  const responseData = response as ApiEnvelope;
 
   // Check for the actual response structure: { message: string, data: any }
   if (responseData && responseData.data) {
-    return responseData.data; // Return the actual workspaces data
+    return responseData.data as userWorkspaceType[]; // Return the actual workspaces data
   } else {
     throw new Error(responseData?.message || "Failed to fetch user workspaces");
   }
 };
 
-export const getWorkspaceByIdQueryFn = async (workspaceId: string) => {
+export const getWorkspaceByIdQueryFn = async (
+  workspaceId: string
+): Promise<userWorkspaceType> => {
   const response = await API.get(`/workspace/${workspaceId}`);
 
   // Since axios interceptor returns res.data, response is already the data object
-  const responseData = response as any;
+  const responseData = response as ApiEnvelope;
 
   // Check for the actual response structure: { message: string, data: any }
   if (responseData && responseData.data) {
-    return responseData.data; // Return the actual workspace data
+    return responseData.data as userWorkspaceType; // Return the actual workspace data
   } else {
     throw new Error(responseData?.message || "Failed to fetch workspace");
   }
@@ -167,7 +180,7 @@ export interface WorkspaceUserResponseType {
     id: string;
     status: string;
     expiresAt: Date;
-  };
+  } | null;
   status: string;
 }
 
@@ -178,7 +191,7 @@ export const getWorkspaceUsersQueryFn = async (
   const response = await API.get(`/workspace/${workspaceId}/users`);
 
   // Since axios interceptor returns res.data, response is already the data object
-  const responseData = response as any;
+  const responseData = response as ApiEnvelope<WorkspaceUserResponseType[]>;
 
   // Check for the actual response structure: { message: string, data: any }
   if (responseData && responseData.data) {
@@ -232,7 +245,7 @@ export const updateUserRoleMutationFn = async (data: {
   );
 
   // Since axios interceptor returns res.data, response is already the data object
-  const responseData = response as any;
+  const responseData = response as ApiEnvelope;
 
   // Check for the actual response structure: { message: string, data: any }
   if (responseData && responseData.data) {
@@ -288,33 +301,30 @@ export const createPropertyMutationFn = async (data: createPropertyType) => {
     });
 
     // Since axios interceptor returns res.data, response is already the data object
-    const responseData = response as any;
+    const responseData = response as ApiEnvelope;
     // Check if the response indicates success
     if (responseData && responseData.data) {
       return responseData.data; // Return the actual property data
     } else {
       throw new Error(responseData?.message || "Failed to create property");
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ createPropertyMutationFn error:", error);
 
+    const axiosErr = error as AxiosError | undefined;
     // Handle different types of errors
-    if (error.code === "ECONNABORTED") {
+    if (axiosErr?.code === "ECONNABORTED") {
       throw new Error(
         "Request timeout - Please try again with fewer or smaller images"
       );
     }
 
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
+    if (hasStringMessage(axiosErr?.response?.data)) {
+      throw new Error(axiosErr.response!.data.message);
     }
 
-    if (error.data?.message) {
-      throw new Error(error.data.message);
-    }
-
-    if (error.message) {
-      throw new Error(error.message);
+    if ((error as { message?: string }).message) {
+      throw new Error((error as { message?: string }).message as string);
     }
 
     throw new Error("Failed to create property - Please try again");
@@ -365,33 +375,30 @@ export const editPropertyMutationFn = async ({
     });
 
     // Since axios interceptor returns res.data, response is already the data object
-    const responseData = response as any;
+    const responseData = response as ApiEnvelope;
     // Check if the response indicates success
     if (responseData && responseData.data) {
       return responseData.data; // Return the actual property data
     } else {
       throw new Error(responseData?.message || "Failed to update property");
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ editPropertyMutationFn error:", error);
 
+    const axiosErr = error as AxiosError | undefined;
     // Handle different types of errors
-    if (error.code === "ECONNABORTED") {
+    if (axiosErr?.code === "ECONNABORTED") {
       throw new Error(
         "Request timeout - Please try again with fewer or smaller images"
       );
     }
 
-    if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
+    if (hasStringMessage(axiosErr?.response?.data)) {
+      throw new Error(axiosErr.response!.data.message);
     }
 
-    if (error.data?.message) {
-      throw new Error(error.data.message);
-    }
-
-    if (error.message) {
-      throw new Error(error.message);
+    if ((error as { message?: string }).message) {
+      throw new Error((error as { message?: string }).message as string);
     }
 
     throw new Error("Failed to update property - Please try again");
@@ -403,31 +410,37 @@ export const deletePropertyMutationFn = async (id: string) => {
     const response = await API.delete(`/properties/${id}`);
 
     // Since axios interceptor returns res.data, response is already the data object
-    const responseData = response as any;
+    const responseData = response as ApiEnvelope;
     // Check if the response indicates success
     if (responseData) {
       return responseData.message || "Property deleted successfully"; // Return success message
     } else {
-      throw new Error(responseData?.message || "Failed to delete property");
+      throw new Error(
+        (responseData as ApiEnvelope | undefined)?.message ||
+          "Failed to delete property"
+      );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ deletePropertyMutationFn error:", error);
 
-    if (error.response?.message) {
-      throw new Error(error.response.message);
+    const axiosErr = error as AxiosError | undefined;
+    if (hasStringMessage(axiosErr?.response?.data)) {
+      throw new Error(axiosErr.response!.data.message);
     }
   }
 };
 
-export const getPropertiesQueryFn = async (workspaceId: string) => {
+export const getPropertiesQueryFn = async (
+  workspaceId: string
+): Promise<propertyType[]> => {
   const response = await API.get(`/properties?workspaceId=${workspaceId}`);
 
   // Since axios interceptor returns res.data, response is already the data object
-  const responseData = response as any;
+  const responseData = response as ApiEnvelope;
 
   // Check for the actual response structure: { message: string, data: any }
   if (responseData && responseData.data) {
-    return responseData.data; // Return the actual properties array
+    return responseData.data as propertyType[]; // Return the actual properties array
   } else {
     throw new Error(responseData?.message || "Failed to fetch properties");
   }
@@ -437,7 +450,7 @@ export const getPropertyByIdQueryFn = async (id: string) => {
   const response = await API.get(`/properties/${id}`);
 
   // Since axios interceptor returns res.data, response is already the data object
-  const responseData = response as any;
+  const responseData = response as ApiEnvelope;
 
   // Check for the actual response structure: { message: string, data: any }
   if (responseData && responseData.data) {
@@ -447,17 +460,19 @@ export const getPropertyByIdQueryFn = async (id: string) => {
   }
 };
 
-export const getPropertyCategoriesQueryFn = async (workspaceId: string) => {
+export const getPropertyCategoriesQueryFn = async (
+  workspaceId: string
+): Promise<propertyCategoryType[]> => {
   const response = await API.get(
     `/properties/categories?workspaceId=${workspaceId}`
   );
 
   // Since axios interceptor returns res.data, response is already the data object
-  const responseData = response as any;
+  const responseData = response as ApiEnvelope;
 
   // Check for the actual response structure: { message: string, data: any }
   if (responseData && responseData.data) {
-    return responseData.data; // Return the actual categories array
+    return responseData.data as propertyCategoryType[]; // Return the actual categories array
   } else {
     throw new Error(responseData?.message || "Failed to fetch categories");
   }
@@ -465,7 +480,7 @@ export const getPropertyCategoriesQueryFn = async (workspaceId: string) => {
 
 // Role And Permission API functions
 
-interface getWorkspaceRolesQueryResponseType {
+export interface getWorkspaceRolesQueryResponseType {
   id: string;
   workspaceId: string;
   name: string;
@@ -484,7 +499,7 @@ interface getWorkspaceRolesQueryResponseType {
       createdAt: string;
       updatedAt: string;
     }[];
-  };
+  }[];
 }
 
 // Get workspace roles
@@ -493,15 +508,7 @@ export const getWorkspaceRolesQueryFn = async (
 ): Promise<getWorkspaceRolesQueryResponseType[]> => {
   const response = await API.get(`/roles/workspace/${workspaceId}`);
 
-  // Since axios interceptor returns res.data, response is already the data object
-  const responseData = response as any;
-
-  // Check for the actual response structure: { message: string, data: any }
-  if (responseData && responseData.data) {
-    return responseData.data; // Return the actual roles data
-  } else {
-    throw new Error(responseData?.message || "Failed to fetch workspace roles");
-  }
+  return response.data;
 };
 
 // Get all permissions
@@ -509,7 +516,7 @@ export const getPermissionsQueryFn = async () => {
   const response = await API.get("/roles/permissions");
 
   // Since axios interceptor returns res.data, response is already the data object
-  const responseData = response as any;
+  const responseData = response as ApiEnvelope;
 
   // Check for the actual response structure: { message: string, data: any }
   if (responseData && responseData.data) {

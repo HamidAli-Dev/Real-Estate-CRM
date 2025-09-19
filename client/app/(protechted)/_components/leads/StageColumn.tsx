@@ -147,12 +147,13 @@ export const StageColumn: React.FC<StageColumnProps> = ({
         stageId: stage.id,
       });
       setShowDeleteDialog(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to delete stage:", error);
       // If it fails due to leads, show the warning dialog
       if (
-        error?.name === "StageHasLeadsError" ||
-        error?.message?.includes("existing leads")
+        error instanceof Error &&
+        (error.name === "StageHasLeadsError" ||
+          error.message.includes("existing leads"))
       ) {
         setShowDeleteDialog(false);
         setShowDeleteWarningDialog(true);
@@ -190,7 +191,7 @@ export const StageColumn: React.FC<StageColumnProps> = ({
   };
 
   const handleCreateLead = async (formData: Partial<CreateLeadData>) => {
-    if (!user?.id) {
+    if (!user?.user.id) {
       console.error("No user ID available");
       return;
     }
@@ -202,7 +203,7 @@ export const StageColumn: React.FC<StageColumnProps> = ({
           contactInfo: formData.contactInfo,
           phone: formData.phone || undefined,
           pipelineStageId: stage.id,
-          assignedToId: formData.assignedToId || user.id, // Use selected agent or fallback to current user
+          assignedToId: formData.assignedToId || user.user.id, // Use selected agent or fallback to current user
           notes: formData.notes,
           source: formData.source || "Website",
           priority: formData.priority || "Warm",
@@ -211,7 +212,7 @@ export const StageColumn: React.FC<StageColumnProps> = ({
           propertyIds: [], // Send empty array for propertyIds
         } as CreateLeadData;
 
-        const result = await createLead.mutateAsync({
+        await createLead.mutateAsync({
           workspaceId,
           data: leadData,
         });
@@ -376,7 +377,7 @@ export const StageColumn: React.FC<StageColumnProps> = ({
           <DialogHeader>
             <DialogTitle>Edit Stage</DialogTitle>
             <DialogDescription>
-              Update the name and color for the "{stage.name}" stage.
+              Update the name and color for the {`"${stage.name}"`} stage.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -430,8 +431,8 @@ export const StageColumn: React.FC<StageColumnProps> = ({
           <DialogHeader>
             <DialogTitle>Delete Stage</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{stage.name}"? This action cannot
-              be undone.
+              Are you sure you want to delete {`"${stage.name}"`}? This action
+              cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -463,7 +464,7 @@ export const StageColumn: React.FC<StageColumnProps> = ({
               ⚠️ Cannot Delete Stage
             </DialogTitle>
             <DialogDescription>
-              The stage "{stage.name}" contains {leads.length} lead
+              The stage {`"${stage.name}"`} contains {leads.length} lead
               {leads.length !== 1 ? "s" : ""} and cannot be deleted.
             </DialogDescription>
             <div className="mt-4 space-y-3">
@@ -502,8 +503,8 @@ export const StageColumn: React.FC<StageColumnProps> = ({
             <DialogTitle>Move Leads to Another Stage</DialogTitle>
             <DialogDescription>
               Select a target stage to move all {leads.length} lead
-              {leads.length !== 1 ? "s" : ""} from "{stage.name}". After moving
-              the leads, the stage will be automatically deleted.
+              {leads.length !== 1 ? "s" : ""} from {`"${stage.name}"`}. After
+              moving the leads, the stage will be automatically deleted.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -551,7 +552,7 @@ export const StageColumn: React.FC<StageColumnProps> = ({
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Add New Lead</DialogTitle>
             <DialogDescription>
-              Create a new lead in the "{stage.name}" stage.
+              Create a new lead in the {`"${stage.name}"`} stage.
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-hidden">
@@ -566,8 +567,8 @@ export const StageColumn: React.FC<StageColumnProps> = ({
               forceStageId={stage.id}
               workspaceUsers={workspaceUsers}
               properties={properties}
-              currentUserId={user?.id || ""}
-              currentUserRole={user?.role?.name || ""}
+              currentUserId={user?.user.id || ""}
+              currentUserRole={user?.user.role?.name || ""}
             />
           </div>
         </DialogContent>

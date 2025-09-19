@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 
 import { useWorkspaceContext } from "@/context/workspace-provider";
-import { useAuthContext } from "@/context/auth-provider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,7 +27,6 @@ import AnalyticsOverview from "./AnalyticsOverview";
 
 const Main = () => {
   const { userWorkspaces, isLoading } = useWorkspaceContext();
-  const { user } = useAuthContext();
   const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] =
     useState(false);
 

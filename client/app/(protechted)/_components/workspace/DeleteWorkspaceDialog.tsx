@@ -15,7 +15,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,9 +72,8 @@ const DeleteWorkspaceDialog = ({
         router.push("/");
       }
     },
-    onError: (error: any) => {
-      const errorMessage =
-        error?.data?.message || error?.message || "Failed to delete workspace";
+    onError: (error) => {
+      const errorMessage = error?.message || "Failed to delete workspace";
       toast.error("Deletion Failed", {
         description: errorMessage,
       });
@@ -98,7 +96,7 @@ const DeleteWorkspaceDialog = ({
   };
 
   // Only show for Owners
-  if (user?.role?.name !== "Owner") {
+  if (user?.user.role?.name !== "Owner") {
     return null;
   }
 
@@ -115,7 +113,7 @@ const DeleteWorkspaceDialog = ({
           <AlertDialogDescription className="text-gray-600">
             This action cannot be undone. This will permanently delete the{" "}
             <span className="font-semibold text-red-600">
-              "{workspaceName}"
+              {`"${workspaceName}"`}
             </span>{" "}
             workspace and all of its data.
           </AlertDialogDescription>

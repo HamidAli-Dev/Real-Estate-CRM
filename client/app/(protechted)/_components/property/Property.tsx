@@ -18,6 +18,7 @@ import {
   propertyType,
   createPropertyType,
   editPropertyType,
+  propertyCategoryType,
 } from "@/types/api.types";
 import PropertyForm from "@/app/(protechted)/_components/property/PropertyForm";
 
@@ -34,7 +35,9 @@ const Property = () => {
   );
 
   // Get property categories
-  const { data: categoriesData, isLoading: categoriesLoading } = useQuery({
+  const { data: categoriesData, isLoading: categoriesLoading } = useQuery<
+    propertyCategoryType[]
+  >({
     queryKey: ["propertyCategories", currentWorkspace?.workspace.id],
     queryFn: () => getPropertyCategoriesQueryFn(currentWorkspace!.workspace.id),
     enabled: !!currentWorkspace?.workspace.id,
@@ -43,7 +46,7 @@ const Property = () => {
   // Create property mutation
   const { mutate: createProperty, isPending: isCreating } = useMutation({
     mutationFn: createPropertyMutationFn,
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success("Property created successfully!");
       setShowCreateForm(false);
       // Invalidate and refetch properties to show the new one
@@ -51,13 +54,10 @@ const Property = () => {
         queryKey: ["properties", currentWorkspace?.workspace.id],
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error("❌ Property creation failed:", error);
       toast.error("Failed to create property", {
-        description:
-          error?.data?.message ||
-          error?.message ||
-          "An unexpected error occurred",
+        description: error?.message || "An unexpected error occurred",
       });
     },
   });
@@ -65,7 +65,7 @@ const Property = () => {
   // Edit property mutation
   const { mutate: editProperty, isPending: isEditing } = useMutation({
     mutationFn: editPropertyMutationFn,
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success("Property updated successfully!");
       setEditingProperty(null);
       // Invalidate and refetch properties to show the updated one
@@ -73,13 +73,10 @@ const Property = () => {
         queryKey: ["properties", currentWorkspace?.workspace.id],
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error("❌ Property update failed:", error);
       toast.error("Failed to update property", {
-        description:
-          error?.data?.message ||
-          error?.message ||
-          "An unexpected error occurred",
+        description: error?.message || "An unexpected error occurred",
       });
     },
   });
@@ -94,7 +91,7 @@ const Property = () => {
     }
   };
 
-  const canManageProperties = user?.role?.name === "Owner";
+  const canManageProperties = user?.user.role?.name === "Owner";
   if (!currentWorkspace) {
     return (
       <div className="flex items-center justify-center py-8">

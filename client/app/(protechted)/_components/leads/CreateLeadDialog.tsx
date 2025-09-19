@@ -32,7 +32,6 @@ export const CreateLeadDialog: React.FC<CreateLeadDialogProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  workspaceId,
   defaultStageId,
 }) => {
   const [formData, setFormData] = useState<Partial<CreateLeadData>>({

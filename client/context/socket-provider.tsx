@@ -64,7 +64,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       process.env.NEXT_PUBLIC_API_MAIN_URL || "http://localhost:5000",
       {
         auth: {
-          userId: user.id, // Send user ID separately
+          userId: user?.user.id, // Send user ID separately
           workspaceId: currentWorkspace.workspace.id, // Correct path to workspace ID
         },
         transports: ["websocket", "polling"],

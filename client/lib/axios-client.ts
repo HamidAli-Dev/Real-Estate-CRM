@@ -1,9 +1,18 @@
-import axios from "axios";
+import axios, {
+  AxiosError,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from "axios";
 
 import { CustomError } from "@/types/custom-error.type";
 import { refreshTokenFn } from "./api";
 
 export const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+interface ErrorData {
+  errorCode?: string;
+  [key: string]: unknown;
+}
 
 const API = axios.create({
   baseURL,
@@ -14,8 +23,8 @@ const API = axios.create({
 // Flag to prevent multiple refresh token requests
 let isRefreshing = false;
 let failedQueue: Array<{
-  resolve: (value: any) => void;
-  reject: (error: any) => void;
+  resolve: (value: string | null) => void;
+  reject: (error: unknown) => void;
 }> = [];
 
 // Flag to prevent infinite refresh loops
@@ -23,7 +32,7 @@ let hasRefreshFailed = false;
 let lastRefreshAttempt = 0;
 const REFRESH_COOLDOWN = 5000; // 5 seconds cooldown between refresh attempts
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach(({ resolve, reject }) => {
     if (error) {
       reject(error);
@@ -36,14 +45,17 @@ const processQueue = (error: any, token: string | null = null) => {
 };
 
 API.interceptors.response.use(
-  (res) => {
+  (res: AxiosResponse) => {
     return res.data;
   },
-  async (err) => {
+  async (err: AxiosError) => {
     const response = err.response;
-    const data = response?.data;
+    const data = response?.data as ErrorData | undefined;
     const status = response?.status;
-    const originalRequest = err.config;
+    const originalRequest = err.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+      url?: string;
+    };
 
     // Check for 401 status - handle both token expiry and unauthorized access
     if (status === 401) {
@@ -89,7 +101,7 @@ API.interceptors.response.use(
       // If we're already refreshing, add to queue
       if (isRefreshing) {
         console.log("⏳ Already refreshing, adding to queue...");
-        return new Promise((resolve, reject) => {
+        return new Promise<string | null>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then(() => {
@@ -118,12 +130,13 @@ API.interceptors.response.use(
 
         // Retry the original request
         return API(originalRequest);
-      } catch (refreshError: any) {
+      } catch (refreshError: unknown) {
+        const refreshAxiosError = refreshError as AxiosError | undefined;
         console.log("❌ Token refresh failed:", refreshError);
         console.log("❌ Refresh error details:", {
-          message: refreshError?.message,
-          status: refreshError?.response?.status,
-          data: refreshError?.response?.data,
+          message: (refreshError as { message?: string } | undefined)?.message,
+          status: refreshAxiosError?.response?.status,
+          data: refreshAxiosError?.response?.data,
         });
         hasRefreshFailed = true; // Set flag to prevent immediate retry
 
@@ -142,11 +155,12 @@ API.interceptors.response.use(
     }
 
     const customError: CustomError = {
-      ...err,
+      ...(err as unknown as Error),
       errorCode: data?.errorCode || "UNKNOWN_ERROR",
-      status,
-      data,
-    };
+      // Keeping extra fields on the thrown object while typing as CustomError
+      ...(status !== undefined ? { status } : {}),
+      ...(data !== undefined ? { data } : {}),
+    } as CustomError;
 
     return Promise.reject(customError);
   }
@@ -161,7 +175,8 @@ export const resetRefreshFailureFlag = () => {
 
 // Expose globally for auth context to use
 if (typeof window !== "undefined") {
-  (window as any).__resetRefreshFlag = resetRefreshFailureFlag;
+  (window as unknown as { __resetRefreshFlag: () => void }).__resetRefreshFlag =
+    resetRefreshFailureFlag;
 }
 
 // No need for request interceptor since cookies are automatically sent

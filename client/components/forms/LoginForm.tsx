@@ -80,9 +80,9 @@ const LoginForm = () => {
           router.push("/dashboard");
         }
       },
-      onError: (err: any) => {
+      onError: (err) => {
         toast.error("Error", {
-          description: err?.data?.message || "Something went wrong",
+          description: err?.message || "Something went wrong",
         });
       },
     });
@@ -165,7 +165,7 @@ const LoginForm = () => {
 
             <div className="mt-3">
               <CardDescription className="">
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link
                   href={"/auth/register"}
                   className="text-cprimary hover:underline"

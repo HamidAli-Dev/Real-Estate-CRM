@@ -88,15 +88,6 @@ const DashboardSidebar = () => {
       description: "Team & permissions",
     },
     {
-      title: "Notifications",
-      href: `/dashboard/notifications${
-        workspaceId ? `?workspaceId=${workspaceId}` : ""
-      }`,
-      path: "/dashboard/notifications",
-      icon: Bell,
-      description: "Notification settings",
-    },
-    {
       title: "Workspace Settings",
       href: `/dashboard/workspace-settings${
         workspaceId ? `?workspaceId=${workspaceId}` : ""

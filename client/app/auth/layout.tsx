@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 
 const AuthLayout = ({
   children,
@@ -7,7 +7,7 @@ const AuthLayout = ({
 }>) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full">
-      {children}
+      <Suspense fallback={null}>{children}</Suspense>
     </div>
   );
 };

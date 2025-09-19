@@ -400,7 +400,7 @@ const PropertyForm = ({
         ...data,
         location: `${data.city}, ${data.state}`, // Derive location from city and state
         workspaceId: currentWorkspace!.workspace.id,
-        listedById: user!.id,
+        listedById: user!.user.id,
         features: selectedFeatures,
         // Ensure numeric fields are properly handled
         yearBuilt: data.yearBuilt || undefined,
@@ -1351,16 +1351,6 @@ const PropertyForm = ({
       </CardContent>
     </Card>
   );
-
-  // Validate form when step changes to ensure proper validation
-  useEffect(() => {
-    if (currentStep === 3) {
-      const validateForm = async () => {
-        const isValid = await form.trigger();
-      };
-      validateForm();
-    }
-  }, [currentStep, form, mode, existingImages.length, selectedImages.length]);
 };
 
 export default PropertyForm;

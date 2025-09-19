@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader, Plus } from "lucide-react";
+import { Loader } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +29,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { usePermission } from "@/hooks/usePermission";
 import {
   createRoleMutationFn,
@@ -51,21 +50,29 @@ const roleSchema = z.object({
 type RoleFormData = z.infer<typeof roleSchema>;
 
 interface RoleData {
-  id: string;
-  name: string;
-  isSystem: boolean;
-  rolePermissions: Array<{
-    id: string;
-    permission: {
-      id: string;
-      name: string;
-    };
-  }>;
+  id?: string;
+  name?: string;
+  isSystem?: boolean;
+  userCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  rolePermissions?: {
+    id?: string;
+    roleId?: string;
+    permissionId?: string;
+    permission?: {
+      id?: string;
+      name?: string;
+      group?: string;
+      createdAt?: string;
+      updatedAt?: string;
+    }[];
+  }[];
 }
 
 interface RoleModalProps {
   mode: "create" | "edit";
-  role?: RoleData;
+  role?: RoleData | null;
   onRoleSaved?: () => void;
   trigger?: React.ReactNode;
   open?: boolean;
@@ -100,7 +107,11 @@ export const RoleModal = ({
   useEffect(() => {
     if (open && mode === "edit" && role) {
       const rolePermissions =
-        role.rolePermissions?.map((rp) => rp.permission.name) || [];
+        role.rolePermissions?.flatMap((rp) =>
+          Array.isArray(rp.permission)
+            ? rp.permission.map((perm) => perm.name || "")
+            : []
+        ) || [];
       form.reset({
         name: role.name,
         permissions: rolePermissions,
@@ -129,8 +140,8 @@ export const RoleModal = ({
       setOpen(false);
       onRoleSaved?.();
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || "Failed to create role");
+    onError: (error) => {
+      toast.error(error?.message || "Failed to create role");
     },
   });
 
@@ -143,8 +154,8 @@ export const RoleModal = ({
       setOpen(false);
       onRoleSaved?.();
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || "Failed to update role");
+    onError: (error) => {
+      toast.error(error?.message || "Failed to update role");
     },
   });
 
@@ -161,19 +172,11 @@ export const RoleModal = ({
       });
     } else if (mode === "edit" && role) {
       updateRoleMutation.mutate({
-        roleId: role.id,
+        roleId: role.id || "",
         workspaceId: currentWorkspace.workspace.id,
         ...data,
       });
     }
-  };
-
-  const isAllSelectedInGroup = (group: string) => {
-    const groupPermissions = permissionsData?.[group] || [];
-    const currentPermissions = form.getValues("permissions");
-    return groupPermissions.every((p: string) =>
-      currentPermissions.includes(p)
-    );
   };
 
   // Data is already grouped, so we just need to transform it for the UI
@@ -261,59 +264,66 @@ export const RoleModal = ({
               ) : (
                 <div className="space-y-6">
                   {Object.entries(groupedPermissions).map(
-                    ([group, permissions]: [string, any]) => (
-                      <div key={group} className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-medium capitalize">
-                            {group.replace(/_/g, " ")} Permissions
-                          </h4>
-                        </div>
+                    ([group, permissions]) => {
+                      const permList = permissions as string[];
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-4">
-                          {permissions.map((permission: string) => (
-                            <FormField
-                              key={permission}
-                              control={form.control}
-                              name="permissions"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(
-                                        permission
-                                      )}
-                                      onCheckedChange={(checked) => {
-                                        const currentPermissions =
-                                          field.value || [];
-                                        if (checked) {
-                                          field.onChange([
-                                            ...currentPermissions,
-                                            permission,
-                                          ]);
-                                        } else {
-                                          field.onChange(
-                                            currentPermissions.filter(
-                                              (p: string) => p !== permission
-                                            )
-                                          );
-                                        }
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <div className="space-y-1 leading-none">
-                                    <FormLabel className="text-sm font-normal">
-                                      {permission.replace(/_/g, " ")}
-                                    </FormLabel>
-                                  </div>
-                                </FormItem>
-                              )}
-                            />
-                          ))}
-                        </div>
+                      return (
+                        <div key={group} className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium capitalize">
+                              {group.replace(/_/g, " ")} Permissions
+                            </h4>
+                          </div>
 
-                        <Separator />
-                      </div>
-                    )
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-4">
+                            {permList.map((permission: string) => {
+                              return (
+                                <FormField
+                                  key={permission}
+                                  control={form.control}
+                                  name="permissions"
+                                  render={({ field }) => (
+                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={field.value?.includes(
+                                            permission
+                                          )}
+                                          onCheckedChange={(checked) => {
+                                            const currentPermissions =
+                                              field.value || [];
+                                            if (checked) {
+                                              field.onChange([
+                                                ...currentPermissions,
+                                                permission,
+                                              ]);
+                                            } else {
+                                              field.onChange(
+                                                currentPermissions.filter(
+                                                  (p: string) =>
+                                                    p !== permission
+                                                )
+                                              );
+                                            }
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <div className="space-y-1 leading-none">
+                                        <FormLabel className="text-sm font-normal">
+                                          {permission.replace(/_/g, " ")}
+                                        </FormLabel>
+                                      </div>
+                                    </FormItem>
+                                  )}
+                                />
+                              );
+                            })}
+                          </div>
+
+                          <Separator />
+                        </div>
+                      );
+                    }
                   )}
                 </div>
               )}

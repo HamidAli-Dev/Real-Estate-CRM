@@ -23,7 +23,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthContext } from "@/context/auth-provider";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import NotificationDropdown from "@/app/(protechted)/_components/notifications/NotificationDropdown";
@@ -68,7 +68,7 @@ const TopBar = () => {
               <div className="relative">
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                   <span className="text-white font-semibold text-lg">
-                    {user?.name?.charAt(0).toUpperCase()}
+                    {user?.user.name?.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div
@@ -79,7 +79,7 @@ const TopBar = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">
-                  Good Morning, {user?.name?.split(" ")[0]}! 👋
+                  Good Morning, {user?.user.name?.split(" ")[0]}! 👋
                 </h1>
                 <p className="text-sm text-gray-500 font-medium">
                   Welcome back to your dashboard
@@ -142,15 +142,15 @@ const TopBar = () => {
                 <div className="flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-100 transition-all duration-200 border border-gray-200/50">
                   <Avatar className="w-10 h-10">
                     <AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white text-sm font-semibold">
-                      {user?.name?.charAt(0).toUpperCase()}
+                      {user?.user.name?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden md:block text-left">
                     <p className="text-sm font-semibold text-gray-900">
-                      {user?.name}
+                      {user?.user.name}
                     </p>
                     <p className="text-xs text-gray-500 font-medium">
-                      {user?.email}
+                      {user?.user.email}
                     </p>
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-400" />
@@ -160,10 +160,10 @@ const TopBar = () => {
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
-                      {user?.name}
+                      {user?.user.name}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {user?.email}
+                      {user?.user.email}
                     </p>
                   </div>
                 </DropdownMenuLabel>

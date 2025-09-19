@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Building2, Globe, Loader, Save, X } from "lucide-react";
+import { Building2, Loader, Save, X } from "lucide-react";
+import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,7 +27,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { editWorkspaceMutationFn } from "@/lib/api";
-import { editWorkspaceType, userWorkspaceType } from "@/types/api.types";
+import {
+  editWorkspaceResponseType,
+  editWorkspaceType,
+  userWorkspaceType,
+} from "@/types/api.types";
+import { editWorkspaceSchema } from "@/lib/validation";
 
 interface EditWorkspaceDialogProps {
   isOpen: boolean;
@@ -42,8 +48,8 @@ const EditWorkspaceDialog: React.FC<EditWorkspaceDialogProps> = ({
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<editWorkspaceType>({
-    resolver: zodResolver(require("@/lib/validation").editWorkspaceSchema),
+  const form = useForm<z.infer<typeof editWorkspaceSchema>>({
+    resolver: zodResolver(editWorkspaceSchema),
     defaultValues: {
       name: workspace.workspace.name,
     },
@@ -58,7 +64,11 @@ const EditWorkspaceDialog: React.FC<EditWorkspaceDialogProps> = ({
     }
   }, [workspace, form]);
 
-  const { mutate: editWorkspace } = useMutation({
+  const { mutate: editWorkspace } = useMutation<
+    editWorkspaceResponseType["data"],
+    Error,
+    { workspaceId: string; name: string }
+  >({
     mutationFn: editWorkspaceMutationFn,
     onSuccess: (data) => {
       toast.success("Workspace Updated!", {
@@ -76,9 +86,9 @@ const EditWorkspaceDialog: React.FC<EditWorkspaceDialogProps> = ({
 
       onClose();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       const errorMessage =
-        error?.data?.message || error?.message || "Failed to update workspace";
+        error?.message || error?.message || "Failed to update workspace";
       toast.error("Update Failed", {
         description: errorMessage,
       });
@@ -106,8 +116,6 @@ const EditWorkspaceDialog: React.FC<EditWorkspaceDialogProps> = ({
       onClose();
     }
   };
-
-  const canEditDomain = !workspace.workspace.domain;
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleClose}>

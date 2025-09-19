@@ -41,7 +41,7 @@ export const WorkspaceProvider = ({
     data: workspacesData,
     isLoading: workspacesLoading,
     isError: workspacesError,
-  } = useQuery({
+  } = useQuery<userWorkspaceType[]>({
     queryKey: ["userWorkspaces"],
     queryFn: getUserWorkspacesQueryFn,
     enabled: !!user && !authLoading, // Only fetch when user is available and auth is not loading
@@ -52,7 +52,7 @@ export const WorkspaceProvider = ({
     data: currentWorkspaceData,
     isLoading: currentWorkspaceLoading,
     isError: currentWorkspaceError,
-  } = useQuery({
+  } = useQuery<userWorkspaceType>({
     queryKey: ["workspace", workspaceId],
     queryFn: () => getWorkspaceByIdQueryFn(workspaceId!),
     enabled: !!workspaceId && !!user && !authLoading,

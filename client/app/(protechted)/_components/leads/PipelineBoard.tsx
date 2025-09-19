@@ -205,7 +205,7 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
   };
 
   const handleCreateLead = async (formData: Partial<CreateLeadData>) => {
-    if (!user?.id) {
+    if (!user?.user.id) {
       console.error("No user ID available");
       return;
     }
@@ -219,7 +219,7 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
             contactInfo: formData.contactInfo,
             phone: formData.phone || undefined,
             pipelineStageId: formData.pipelineStageId,
-            assignedToId: formData.assignedToId || user.id, // Use selected agent or fallback to current user
+            assignedToId: formData.assignedToId || user.user.id, // Use selected agent or fallback to current user
             notes: formData.notes,
             source: formData.source || "Website",
             priority: formData.priority || "Warm",
@@ -588,8 +588,8 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
               onSubmit={handleCreateLead}
               onCancel={() => setIsCreateLeadOpen(false)}
               workspaceUsers={workspaceUsers}
-              currentUserId={user?.id || ""}
-              currentUserRole={user?.role || ""}
+              currentUserId={user?.user.id || ""}
+              currentUserRole={user?.user.role?.name || ""}
             />
           </div>
         </DialogContent>

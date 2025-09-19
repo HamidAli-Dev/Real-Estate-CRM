@@ -21,9 +21,9 @@ export const usePermission = () => {
 
   // Fetch user's permissions in the current workspace
   const { data: userPermissions, isLoading } = useQuery({
-    queryKey: ["user-permissions", user?.id, currentWorkspace?.id],
+    queryKey: ["user-permissions", user?.user.id, currentWorkspace?.id],
     queryFn: async (): Promise<UserPermissions> => {
-      if (!user?.id || !currentWorkspace?.id) {
+      if (!user?.user.id || !currentWorkspace?.id) {
         return { permissions: [], role: { id: "", name: "", isSystem: false } };
       }
 
@@ -86,7 +86,7 @@ export const usePermission = () => {
         return { permissions: [], role: { id: "", name: "", isSystem: false } };
       }
     },
-    enabled: !!user?.id && !!currentWorkspace?.id,
+    enabled: !!user?.user.id && !!currentWorkspace?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
   });

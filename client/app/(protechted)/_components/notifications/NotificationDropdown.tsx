@@ -210,7 +210,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
                 No notifications yet
               </p>
               <p className="text-xs text-gray-400">
-                You'll see updates here when they arrive
+                You&apos;ll see updates here when they arrive
               </p>
             </div>
           ) : (

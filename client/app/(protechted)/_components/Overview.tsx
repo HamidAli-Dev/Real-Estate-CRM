@@ -11,7 +11,7 @@ const Overview = () => {
           Workspace Dashboard
         </h1>
         <p className="text-gray-600 text-lg">
-          Welcome back, {user?.name}! Manage your business workspaces and
+          Welcome back, {user?.user.name}! Manage your business workspaces and
           properties.
         </p>
       </div>

@@ -70,7 +70,12 @@ export const LeadForm: React.FC<LeadFormProps> = ({
   onCancel,
   forceStageId,
 }) => {
-  const handleInputChange = (field: keyof CreateLeadData, value: any) => {
+  const handleInputChange = (
+    field: keyof CreateLeadData,
+    value:
+      | CreateLeadData[keyof CreateLeadData]
+      | UpdateLeadData[keyof UpdateLeadData]
+  ) => {
     const newData = { ...formData, [field]: value };
     onFormDataChange(newData);
   };

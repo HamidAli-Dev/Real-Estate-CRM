@@ -5,13 +5,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, usePathname } from "next/navigation";
 
 import { getCurrentUserQueryFn, refreshTokenFn } from "@/lib/api";
-import { userType } from "@/types/api.types";
+import { getCurrentUserResponseType, userType } from "@/types/api.types";
 import API from "@/lib/axios-client";
 import { MandatoryPasswordChangeModal } from "@/components/forms/MandatoryPasswordChangeModal";
 
 interface AuthContextProps {
-  user?: userType | null;
-  setUser: (user: userType | null) => void;
+  user?: getCurrentUserResponseType | null;
+  setUser: (user: getCurrentUserResponseType | null) => void;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
   isLoading: boolean;
@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const queryClient = useQueryClient();
 
-  const [user, setUser] = useState<userType | null>(null);
+  const [user, setUser] = useState<getCurrentUserResponseType | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
 
@@ -50,23 +50,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     !queryClient.getQueryData(["currentUser"]); // Don't fetch if we already have the data
 
   // Query: get current user from backend
-  const { data, isSuccess, error, isLoading, refetch } = useQuery<{
-    message: string;
-    user: userType;
-  }>({
-    queryKey: ["currentUser"],
-    queryFn: getCurrentUserQueryFn,
-    enabled: shouldFetchUser, // Only fetch when needed
-    retry: (failureCount, error: any) => {
-      // Don't retry if it's an authentication error (let the interceptor handle it)
-      if (error?.status === 401 || error?.errorCode === "ACCESS_UNAUTHORIZED") {
-        return false;
-      }
-      // Retry other errors up to 3 times
-      return failureCount < 3;
-    },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-  });
+  const { data, isSuccess, error, isLoading, refetch } =
+    useQuery<getCurrentUserResponseType>({
+      queryKey: ["currentUser"],
+      queryFn: getCurrentUserQueryFn,
+      enabled: shouldFetchUser, // Only fetch when needed
+      retry: (failureCount, error: any) => {
+        // Don't retry if it's an authentication error (let the interceptor handle it)
+        if (
+          error?.status === 401 ||
+          error?.errorCode === "ACCESS_UNAUTHORIZED"
+        ) {
+          return false;
+        }
+        // Retry other errors up to 3 times
+        return failureCount < 3;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    });
 
   // Handle initial error state
   useEffect(() => {
@@ -81,7 +82,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (isInitialized && data && !user) {
       // If there's data and no user, set user
       if (data.user) {
-        setUser(data.user);
+        setUser(data);
       }
     }
   }, [isInitialized, data, user]);
@@ -89,12 +90,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Show password change modal if user must update password
   useEffect(() => {
     console.log("🔍 Auth Provider - User data:", user);
-    console.log(
-      "🔍 Auth Provider - mustUpdatePassword:",
-      user?.mustUpdatePassword
-    );
+    console.log("🔍 Auth Provider - mustUpdatePassword:", user?.user);
 
-    if (user && user.mustUpdatePassword) {
+    if (user && user.user.mustUpdatePassword) {
       console.log("✅ Showing password change modal");
       setShowPasswordChangeModal(true);
     } else {
@@ -121,7 +119,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!isInitialized) return;
 
     if (isSuccess && data?.user) {
-      setUser(data.user);
+      setUser(data);
       // Reset the refresh failure flag when auth succeeds
       if (typeof window !== "undefined") {
         (window as any).__resetRefreshFlag?.();

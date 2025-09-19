@@ -1,11 +1,11 @@
 "use client";
 import React, { useState } from "react";
+import { z } from "zod";
 import { Building2, Globe, Loader, Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 import {
   AlertDialog,
@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { createWorkspaceMutationFn } from "@/lib/api";
 import { createWorkspaceType } from "@/types/api.types";
 import { useWorkspaceContext } from "@/context/workspace-provider";
+import { createWorkspaceSchema } from "@/lib/validation";
 
 interface CreateWorkspaceDialogProps {
   isOpen: boolean;
@@ -39,12 +40,11 @@ const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({
   onClose,
 }) => {
   const queryClient = useQueryClient();
-  const router = useRouter();
   const { switchWorkspace } = useWorkspaceContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<createWorkspaceType>({
-    resolver: zodResolver(require("@/lib/validation").createWorkspaceSchema),
+  const form = useForm<z.infer<typeof createWorkspaceSchema>>({
+    resolver: zodResolver(createWorkspaceSchema),
     defaultValues: {
       name: "",
     },
@@ -54,7 +54,7 @@ const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({
     mutationFn: createWorkspaceMutationFn,
     onSuccess: (data) => {
       toast.success("Workspace Created!", {
-        description: `Your workspace "${data.workspace.name}" has been created successfully.`,
+        description: `Your workspace "${data.data.workspace.name}" has been created successfully.`,
       });
 
       // Invalidate and refetch workspaces data
@@ -65,13 +65,12 @@ const CreateWorkspaceDialog: React.FC<CreateWorkspaceDialogProps> = ({
       onClose();
 
       // Switch to the newly created workspace
-      if (data.workspace.id) {
-        switchWorkspace(data.workspace.id);
+      if (data.data.workspace.id) {
+        switchWorkspace(data.data.workspace.id);
       }
     },
-    onError: (error: any) => {
-      const errorMessage =
-        error?.data?.message || error?.message || "Failed to create workspace";
+    onError: (error) => {
+      const errorMessage = error?.message || "Failed to create workspace";
       toast.error("Creation Failed", {
         description: errorMessage,
       });

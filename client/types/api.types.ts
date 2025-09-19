@@ -33,6 +33,23 @@ export interface userType {
   mustUpdatePassword?: boolean;
 }
 
+export interface getCurrentUserResponseType {
+  message: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    mustUpdatePassword: boolean;
+    role: {
+      id: string;
+      name: string;
+      isSystem: boolean;
+    };
+    workspaceId: string;
+    workspaceName: string;
+  };
+}
+
 export interface workspaceType {
   id: string;
   name: string;
