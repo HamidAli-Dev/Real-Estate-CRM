@@ -1,6 +1,6 @@
 import { Request } from "express";
 import passport from "passport";
-import { Strategy as JwtStrategy } from "passport-jwt";
+import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 
 import { APP_CONFIG } from "./app.config";
 import { db } from "../utils/db";
@@ -10,7 +10,11 @@ interface JwtPayload {
   workspaceId?: string;
 }
 
-// Custom extractor to get JWT from cookies
+// Custom extractor to get JWT from Authorization header (Bearer token)
+// This replaces the cookie-based extraction for localStorage auth
+const extractJwtFromAuthHeader = ExtractJwt.fromAuthHeaderAsBearerToken();
+
+// Legacy: Custom extractor to get JWT from cookies (kept for backward compatibility)
 const extractJwtFromCookie = (req: Request) => {
   let token = null;
   if (req && req.cookies) {
@@ -19,12 +23,25 @@ const extractJwtFromCookie = (req: Request) => {
   return token;
 };
 
+// Combined extractor: tries Authorization header first, then falls back to cookies
+const extractJwtFromRequestOrCookie = (req: Request) => {
+  // Try Authorization header first (new localStorage-based auth)
+  let token = extractJwtFromAuthHeader(req);
+  
+  // Fallback to cookies (legacy cookie-based auth)
+  if (!token) {
+    token = extractJwtFromCookie(req);
+  }
+  
+  return token;
+};
+
 const passportConfig = () => {
   // JWT Strategy
   passport.use(
     new JwtStrategy(
       {
-        jwtFromRequest: extractJwtFromCookie, // Use custom extractor for cookies
+        jwtFromRequest: extractJwtFromRequestOrCookie, // Use combined extractor for both localStorage and cookie auth
         secretOrKey: APP_CONFIG.JWT_SECRET,
       },
       async (payload: JwtPayload, done) => {

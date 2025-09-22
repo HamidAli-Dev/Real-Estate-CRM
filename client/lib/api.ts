@@ -10,18 +10,23 @@ import {
   propertyCategoryType,
   userWorkspaceType,
 } from "@/types/api.types";
-import API from "./axios-client";
+import API, { tokenStorage } from "./axios-client";
 
 // Separate axios instance for refresh token to avoid interceptor loops
 const refreshAPI = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-  withCredentials: true, // Need this for cookies
   timeout: 10000,
 });
 
 interface ApiEnvelope<T = unknown> {
   message?: string;
   data?: T;
+}
+
+interface AuthResponse {
+  user?: any;
+  accessToken?: string;
+  refreshToken?: string;
 }
 
 const hasStringMessage = (value: unknown): value is { message: string } => {
@@ -41,6 +46,15 @@ export const registerMutationFn = async (data: {
   role?: string;
 }) => {
   const response = await API.post("/auth/register-owner", data);
+  
+  // Store tokens in localStorage if present
+  if (response.data?.accessToken) {
+    tokenStorage.setAccessToken(response.data.accessToken);
+  }
+  if (response.data?.refreshToken) {
+    tokenStorage.setRefreshToken(response.data.refreshToken);
+  }
+  
   return response;
 };
 
@@ -49,20 +63,48 @@ export const loginMutationFn = async (data: {
   password: string;
 }) => {
   const response = await API.post("/auth/login", data);
-  // Tokens are now set as HTTP-only cookies by the backend
-  return (response as ApiEnvelope).data;
+  
+  // Store tokens in localStorage
+  const responseData = (response as ApiEnvelope<AuthResponse>).data;
+  if (responseData?.accessToken) {
+    tokenStorage.setAccessToken(responseData.accessToken);
+  }
+  if (responseData?.refreshToken) {
+    tokenStorage.setRefreshToken(responseData.refreshToken);
+  }
+  
+  return responseData;
 };
 
-export const refreshTokenFn = async (): Promise<{ message: string }> => {
+export const refreshTokenFn = async (): Promise<{ message: string; accessToken: string }> => {
   console.log("🔄 Attempting to refresh token...");
 
   try {
+    const refreshToken = tokenStorage.getRefreshToken();
+    if (!refreshToken) {
+      throw new Error("No refresh token available");
+    }
+
     // Use separate axios instance to avoid interceptor loops
-    const response = await refreshAPI.post("/auth/refresh-token");
+    const response = await refreshAPI.post("/auth/refresh-token", {
+      refreshToken,
+    });
+    
     console.log("✅ Refresh token response:", response.data);
-    return response.data; // Direct access to response.data since no interceptor
+    
+    // Store new access token
+    if (response.data?.data?.accessToken) {
+      tokenStorage.setAccessToken(response.data.data.accessToken);
+    }
+    
+    return {
+      message: response.data.message,
+      accessToken: response.data.data.accessToken,
+    };
   } catch (error) {
     console.log("❌ Refresh token request failed:", error);
+    // Clear tokens on refresh failure
+    tokenStorage.removeTokens();
     throw error;
   }
 };

@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 
 import { getCurrentUserQueryFn, refreshTokenFn } from "@/lib/api";
 import { getCurrentUserResponseType, userType } from "@/types/api.types";
-import API from "@/lib/axios-client";
+import API, { tokenStorage } from "@/lib/axios-client";
 import { MandatoryPasswordChangeModal } from "@/components/forms/MandatoryPasswordChangeModal";
 
 interface AuthContextProps {
@@ -38,16 +38,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
 
-  // Initialize auth state after hydration
+  // Initialize auth state after hydration and check localStorage
   useEffect(() => {
     setIsInitialized(true);
-  }, []);
+    
+    // Check if we have tokens in localStorage but no user data
+    if (tokenStorage.hasTokens()) {
+      console.log("🔑 Found tokens in localStorage, will fetch user data");
+    } else {
+      console.log("❌ No tokens found in localStorage");
+      // If we're on a protected route and have no tokens, redirect to login
+      if (isProtectedRoute(pathname)) {
+        console.log("🚑 Redirecting to login from protected route");
+        router.push("/auth/login");
+      }
+    }
+  }, [pathname, router]);
 
   // Check if we should fetch user data
   const shouldFetchUser =
     isInitialized &&
-    isProtectedRoute(pathname) &&
-    !queryClient.getQueryData(["currentUser"]); // Don't fetch if we already have the data
+    tokenStorage.hasTokens() && // Only fetch if we have tokens
+    (isProtectedRoute(pathname) || !queryClient.getQueryData(["currentUser"])); // Fetch for protected routes or if no cached data
 
   // Query: get current user from backend
   const { data, isSuccess, error, isLoading, refetch } =
@@ -57,9 +69,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       enabled: shouldFetchUser, // Only fetch when needed
       retry: (failureCount, error: any) => {
         // Don't retry if it's an authentication error (let the interceptor handle it)
+        const customError = error as any;
         if (
-          error?.status === 401 ||
-          error?.errorCode === "ACCESS_UNAUTHORIZED"
+          customError?.status === 401 ||
+          customError?.errorCode === "ACCESS_UNAUTHORIZED"
         ) {
           return false;
         }
@@ -69,20 +82,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     });
 
-  // Handle initial error state
+  // Handle authentication errors and token cleanup
   useEffect(() => {
     if (isInitialized && error && !user) {
-      // If error and no user, set user to null
+      // Check if it's an authentication error
+      const customError = error as any; // Type assertion for custom error properties
+      if (
+        customError?.status === 401 ||
+        customError?.errorCode === "ACCESS_UNAUTHORIZED"
+      ) {
+        console.log("🚑 Authentication error, clearing tokens and redirecting");
+        tokenStorage.removeTokens();
+        
+        // Redirect to login if on protected route
+        if (isProtectedRoute(pathname)) {
+          router.push("/auth/login");
+        }
+      }
+      
       setUser(null);
     }
-  }, [isInitialized, error, user]);
+  }, [isInitialized, error, user, pathname, router]);
 
-  // Handle initial data state
+  // Handle successful authentication
   useEffect(() => {
     if (isInitialized && data && !user) {
       // If there's data and no user, set user
       if (data.user) {
         setUser(data);
+        console.log("✅ User authenticated successfully");
       }
     }
   }, [isInitialized, data, user]);
@@ -137,10 +165,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Logout function
   const logout = async () => {
     try {
-      await API.post("/auth/logout-all"); // backend clears refresh tokens and cookies
+      await API.post("/auth/logout-all"); // backend clears refresh tokens
     } catch (e) {
       console.error("Logout failed:", e);
     } finally {
+      // Clear tokens from localStorage
+      tokenStorage.removeTokens();
+      
       setUser(null);
       queryClient.clear(); // clear all react-query cache
       router.push("/auth/login");

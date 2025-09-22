@@ -9,6 +9,42 @@ import { refreshTokenFn } from "./api";
 
 export const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+// Token storage utilities for localStorage
+const TOKEN_KEYS = {
+  ACCESS_TOKEN: "accessToken",
+  REFRESH_TOKEN: "refreshToken",
+} as const;
+
+export const tokenStorage = {
+  getAccessToken: (): string | null => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN);
+  },
+  setAccessToken: (token: string): void => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(TOKEN_KEYS.ACCESS_TOKEN, token);
+    }
+  },
+  getRefreshToken: (): string | null => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(TOKEN_KEYS.REFRESH_TOKEN);
+  },
+  setRefreshToken: (token: string): void => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(TOKEN_KEYS.REFRESH_TOKEN, token);
+    }
+  },
+  removeTokens: (): void => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(TOKEN_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(TOKEN_KEYS.REFRESH_TOKEN);
+    }
+  },
+  hasTokens: (): boolean => {
+    return !!(tokenStorage.getAccessToken() && tokenStorage.getRefreshToken());
+  },
+};
+
 interface ErrorData {
   errorCode?: string;
   [key: string]: unknown;
@@ -16,7 +52,6 @@ interface ErrorData {
 
 const API = axios.create({
   baseURL,
-  withCredentials: true, // Need this for cookies
   timeout: 10000,
 });
 
@@ -43,6 +78,20 @@ const processQueue = (error: unknown, token: string | null = null) => {
 
   failedQueue = [];
 };
+
+// Request interceptor to add Authorization header with access token
+API.interceptors.request.use(
+  (config) => {
+    const accessToken = tokenStorage.getAccessToken();
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 API.interceptors.response.use(
   (res: AxiosResponse) => {
@@ -121,9 +170,14 @@ API.interceptors.response.use(
       lastRefreshAttempt = now;
 
       try {
-        await refreshTokenFn();
+        const newTokens = await refreshTokenFn();
         console.log("✅ Token refresh successful, retrying request...");
         hasRefreshFailed = false; // Reset failure flag on success
+
+        // Update the original request with new token
+        if (originalRequest.headers && newTokens.accessToken) {
+          originalRequest.headers.Authorization = `Bearer ${newTokens.accessToken}`;
+        }
 
         // Process the queue
         processQueue(null, "success");
@@ -140,6 +194,9 @@ API.interceptors.response.use(
         });
         hasRefreshFailed = true; // Set flag to prevent immediate retry
 
+        // Clear tokens from localStorage on refresh failure
+        tokenStorage.removeTokens();
+        
         // Process the queue
         processQueue(refreshError, null);
 
@@ -179,5 +236,5 @@ if (typeof window !== "undefined") {
     resetRefreshFailureFlag;
 }
 
-// No need for request interceptor since cookies are automatically sent
+// No request interceptor needed for cookies, but we have one above for Authorization header
 export default API;

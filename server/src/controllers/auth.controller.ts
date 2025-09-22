@@ -16,7 +16,8 @@ import { BadRequestException, UnauthorizedException } from "../utils/AppError";
 import { db } from "../utils/db";
 import { APP_CONFIG } from "../config/app.config";
 
-// Cookie options for security
+// These cookie functions are kept for backward compatibility but will be removed
+// after migration to localStorage is complete
 const getAccessTokenCookieOptions = () => ({
   httpOnly: true,
   secure: true,
@@ -37,10 +38,10 @@ const getRefreshTokenCookieOptions = () => ({
 
 export const refreshAccessToken = asyncHandler(
   async (req: Request, res: Response) => {
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken = req.body.refreshToken;
 
     if (!refreshToken) {
-      console.log("❌ No refresh token found in cookies");
+      console.log("❌ No refresh token found in request body");
       throw new BadRequestException("Refresh token is required");
     }
 
@@ -80,15 +81,13 @@ export const refreshAccessToken = asyncHandler(
       { expiresIn: "1h" } // 1 hour
     );
 
-    // Set new access token as cookie
-    const cookieOptions = getAccessTokenCookieOptions();
-
-    res.cookie("accessToken", newAccessToken, cookieOptions);
-
-    console.log("✅ New access token cookie set");
+    console.log("✅ New access token generated");
 
     return res.json({
       message: "Access token refreshed successfully",
+      data: {
+        accessToken: newAccessToken,
+      },
     });
   }
 );
@@ -99,18 +98,12 @@ export const registerOwner = asyncHandler(
 
     const result = await registerOwnerService(body);
 
-    // Set tokens as HTTP-only cookies
-    res.cookie("accessToken", result.token, getAccessTokenCookieOptions());
-    res.cookie(
-      "refreshToken",
-      result.refreshToken,
-      getRefreshTokenCookieOptions()
-    );
-
     return res.status(HTTPSTATUS.CREATED).json({
       message: "Owner registered successfully",
       data: {
         owner: result.owner,
+        accessToken: result.token,
+        refreshToken: result.refreshToken,
       },
     });
   }
@@ -121,18 +114,12 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   const result = await loginService(body);
 
-  // Set tokens as HTTP-only cookies
-  res.cookie("accessToken", result.accessToken, getAccessTokenCookieOptions());
-  res.cookie(
-    "refreshToken",
-    result.refreshToken,
-    getRefreshTokenCookieOptions()
-  );
-
   return res.status(HTTPSTATUS.OK).json({
     message: "Login successful",
     data: {
       user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
     },
   });
 });
@@ -148,10 +135,6 @@ export const logoutAllDevices = asyncHandler(
     await db.refreshToken.deleteMany({
       where: { userId: req.user.id },
     });
-
-    // Clear cookies
-    res.clearCookie("accessToken", { path: "/" });
-    res.clearCookie("refreshToken", { path: "/" });
 
     return res.status(HTTPSTATUS.OK).json({
       message: "Logged out from all devices successfully",

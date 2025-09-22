@@ -8,23 +8,6 @@ import {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get("accessToken")?.value;
-  const isAuthenticated = !!token;
-
-  // Handle main app routes
-  if (isProtectedRoute(pathname)) {
-    if (!isAuthenticated) {
-      const loginUrl = new URL("/auth/login", request.url);
-      loginUrl.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-  }
-
-  if (isPublicRoute(pathname)) {
-    if (isAuthenticated && shouldRedirectToDashboard(pathname)) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-  }
 
   return NextResponse.next();
 }
