@@ -19,10 +19,8 @@ import { APP_CONFIG } from "../config/app.config";
 // Cookie options for security
 const getAccessTokenCookieOptions = () => ({
   httpOnly: true,
-  secure: APP_CONFIG.NODE_ENV === "production",
-  sameSite: (APP_CONFIG.NODE_ENV === "production" ? "strict" : "lax") as
-    | "strict"
-    | "lax",
+  secure: true,
+  sameSite: "none" as const,
   maxAge: 60 * 60 * 1000, // 1 hour
   path: "/",
   expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
@@ -30,10 +28,8 @@ const getAccessTokenCookieOptions = () => ({
 
 const getRefreshTokenCookieOptions = () => ({
   httpOnly: true,
-  secure: APP_CONFIG.NODE_ENV === "production",
-  sameSite: (APP_CONFIG.NODE_ENV === "production" ? "strict" : "lax") as
-    | "strict"
-    | "lax",
+  secure: true,
+  sameSite: "none" as const,
   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   path: "/",
   expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Explicit expiration date
