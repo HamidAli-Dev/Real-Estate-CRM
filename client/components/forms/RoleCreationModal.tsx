@@ -34,6 +34,7 @@ import {
   createRoleMutationFn,
   getPermissionsQueryFn,
   updateRoleMutationFn,
+  getWorkspaceRolesQueryResponseType,
 } from "@/lib/api";
 import { useWorkspaceContext } from "@/context/workspace-provider";
 
@@ -49,30 +50,9 @@ const roleSchema = z.object({
 
 type RoleFormData = z.infer<typeof roleSchema>;
 
-interface RoleData {
-  id?: string;
-  name?: string;
-  isSystem?: boolean;
-  userCount?: number;
-  createdAt?: string;
-  updatedAt?: string;
-  rolePermissions?: {
-    id?: string;
-    roleId?: string;
-    permissionId?: string;
-    permission?: {
-      id?: string;
-      name?: string;
-      group?: string;
-      createdAt?: string;
-      updatedAt?: string;
-    }[];
-  }[];
-}
-
 interface RoleModalProps {
   mode: "create" | "edit";
-  role?: RoleData | null;
+  role?: getWorkspaceRolesQueryResponseType | null;
   onRoleSaved?: () => void;
   trigger?: React.ReactNode;
   open?: boolean;
@@ -107,13 +87,16 @@ export const RoleModal = ({
   useEffect(() => {
     if (open && mode === "edit" && role) {
       const rolePermissions =
-        role.rolePermissions?.flatMap((rp) =>
-          Array.isArray(rp.permission)
-            ? rp.permission.map((perm) => perm.name || "")
-            : []
-        ) || [];
+        role.rolePermissions?.map((rp) => {
+          // The API returns permission as an array, but we need the first item
+          const permission = Array.isArray(rp.permission) 
+            ? rp.permission[0] 
+            : rp.permission;
+          return permission?.name || "";
+        }).filter(Boolean) || [];
+      
       form.reset({
-        name: role.name,
+        name: role.name || "",
         permissions: rolePermissions,
       });
     } else if (open && mode === "create") {

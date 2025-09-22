@@ -85,26 +85,7 @@ const UserManagement = () => {
   const [editingUser, setEditingUser] = useState<
     WorkspaceUserResponseType | null | undefined
   >(null);
-  const [editingRole, setEditingRole] = useState<{
-    id: string;
-    name: string;
-    isSystem: boolean;
-    userCount: number;
-    createdAt: string;
-    updatedAt: string;
-    rolePermissions: {
-      id: string;
-      roleId: string;
-      permissionId: string;
-      permission: {
-        id: string;
-        name: string;
-        group: string;
-        createdAt: string;
-        updatedAt: string;
-      }[];
-    }[];
-  } | null>(null);
+  const [editingRole, setEditingRole] = useState<getWorkspaceRolesQueryResponseType | null>(null);
   const [creatingRole, setCreatingRole] = useState(false);
   const { currentWorkspace } = useWorkspaceContext();
   const { can } = usePermission();
@@ -276,28 +257,8 @@ const UserManagement = () => {
     });
   };
 
-  const handleEditRole = (role: {
-    id: string;
-    name: string;
-    isSystem: boolean;
-    userCount: number;
-    createdAt: string;
-    updatedAt: string;
-    rolePermissions: {
-      id: string;
-      roleId: string;
-      permissionId: string;
-      permission: {
-        id: string;
-        name: string;
-        group: string;
-        createdAt: string;
-        updatedAt: string;
-      }[];
-    }[];
-  }) => {
+  const handleEditRole = (role: getWorkspaceRolesQueryResponseType) => {
     setEditingRole(role);
-    console.log("😡😡 Editing role:", role);
   };
 
   const handleDeleteRole = (roleId: string) => {
@@ -555,231 +516,184 @@ const UserManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {roles.map(
-                  (role: {
-                    id: string;
-                    name: string;
-                    isSystem: boolean;
-                    userCount: number;
-                    createdAt: string;
-                    updatedAt: string;
-                    rolePermissions: {
-                      id: string;
-                      roleId: string;
-                      permissionId: string;
-                      permission: {
-                        id: string;
-                        name: string;
-                        group: string;
-                        createdAt: string;
-                        updatedAt: string;
-                      }[];
-                    }[];
-                  }) => (
-                    <TableRow
-                      key={role.id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <div className="font-medium">{role.name}</div>
-                          {role.isSystem && (
-                            <Badge variant="secondary" className="text-xs">
-                              System
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={role.isSystem ? "default" : "outline"}
-                          className={
-                            role.isSystem
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-gray-100 text-gray-800"
-                          }
-                        >
-                          {role.isSystem ? "System Role" : "Custom Role"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Users className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm">
-                            {
-                              workspaceUsers.filter(
-                                (wu) => wu.role?.id === role.id
-                              ).length
-                            }{" "}
-                            user
-                            {workspaceUsers.filter(
+                {roles.map((role: getWorkspaceRolesQueryResponseType) => (
+                  <TableRow
+                    key={role.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <div className="font-medium">{role.name}</div>
+                        {role.isSystem && (
+                          <Badge variant="secondary" className="text-xs">
+                            System
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={role.isSystem ? "default" : "outline"}
+                        className={
+                          role.isSystem
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                        }
+                      >
+                        {role.isSystem ? "System Role" : "Custom Role"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Users className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm">
+                          {
+                            workspaceUsers.filter(
                               (wu) => wu.role?.id === role.id
-                            ).length !== 1
-                              ? "s"
-                              : ""}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {role.rolePermissions?.slice(0, 3).map(
-                            (rolePermission: {
-                              id: string;
-                              roleId: string;
-                              permissionId: string;
-                              permission: {
-                                id: string;
-                                name: string;
-                                group: string;
-                                createdAt?: string;
-                                updatedAt?: string;
-                              }[];
-                            }) =>
-                              rolePermission.permission &&
-                              Array.isArray(rolePermission.permission)
-                                ? rolePermission.permission.map((perm) => (
-                                    <Badge
-                                      key={rolePermission.id + "-" + perm.id}
-                                      variant="outline"
-                                      className="text-xs"
-                                    >
-                                      {perm.name.replace(/_/g, " ")}
-                                    </Badge>
-                                  ))
-                                : null
-                          )}
-                          {(role.rolePermissions?.length || 0) > 3 && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs cursor-help"
-                                  >
-                                    +{(role.rolePermissions?.length || 0) - 3}{" "}
-                                    more
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <div className="max-w-xs">
-                                    <p className="font-medium mb-2">
-                                      All Permissions:
-                                    </p>
-                                    <div className="space-y-1">
-                                      {role.rolePermissions?.map(
-                                        (rolePermission: {
-                                          id: string;
-                                          roleId: string;
-                                          permissionId: string;
-                                          permission: {
-                                            id: string;
-                                            name: string;
-                                            group: string;
-                                            createdAt?: string;
-                                            updatedAt?: string;
-                                          }[];
-                                        }) => (
+                            ).length
+                          }{" "}
+                          user
+                          {workspaceUsers.filter(
+                            (wu) => wu.role?.id === role.id
+                          ).length !== 1
+                            ? "s"
+                            : ""}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {role.rolePermissions
+                          ?.slice(0, 3)
+                          .map((rolePermission) => {
+                            const permission = Array.isArray(rolePermission.permission) 
+                              ? rolePermission.permission[0] 
+                              : rolePermission.permission;
+                            
+                            return permission ? (
+                              <Badge
+                                key={rolePermission.id}
+                                variant="outline"
+                                className="text-xs"
+                              >
+                                {permission.name.replace(/_/g, " ")}
+                              </Badge>
+                            ) : null;
+                          })}
+                        {(role.rolePermissions?.length || 0) > 3 && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs cursor-help"
+                                >
+                                  +{(role.rolePermissions?.length || 0) - 3}{" "}
+                                  more
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs">
+                                  <p className="font-medium mb-2">
+                                    All Permissions:
+                                  </p>
+                                  <div className="space-y-1">
+                                    {role.rolePermissions?.map(
+                                      (rolePermission) => {
+                                        // Handle both array and single object cases for backward compatibility
+                                        const permission = Array.isArray(rolePermission.permission) 
+                                          ? rolePermission.permission[0] 
+                                          : rolePermission.permission;
+                                        
+                                        return permission ? (
                                           <div
                                             key={rolePermission.id}
                                             className="text-xs"
                                           >
-                                            {Array.isArray(
-                                              rolePermission.permission
-                                            )
-                                              ? rolePermission.permission.map(
-                                                  (perm) => (
-                                                    <div key={perm.id}>
-                                                      {perm.name.replace(
-                                                        /_/g,
-                                                        " "
-                                                      )}
-                                                    </div>
-                                                  )
-                                                )
-                                              : null}
+                                            {permission.name.replace(/_/g, " ")}
                                           </div>
-                                        )
-                                      )}
-                                    </div>
+                                        ) : null;
+                                      }
+                                    )}
                                   </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                          {(!role.rolePermissions ||
-                            role.rolePermissions.length === 0) && (
-                            <span className="text-xs text-gray-500">
-                              No permissions
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          {can.editUserRoles() && !role.isSystem && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditRole(role)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {can.editUserRoles() && !role.isSystem && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700"
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        {(!role.rolePermissions ||
+                          role.rolePermissions.length === 0) && (
+                          <span className="text-xs text-gray-500">
+                            No permissions
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        {can.editUserRoles() && !role.isSystem && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditRole(role)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {can.editUserRoles() && !role.isSystem && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700"
+                                disabled={isDeletingRole}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="flex items-center space-x-2">
+                                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                                  <span>Delete Role</span>
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete the role
+                                  {`"${role.name}"`}? This action cannot be
+                                  undone and will affect all users assigned to
+                                  this role.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-red-600 hover:bg-red-700"
+                                  onClick={() => handleDeleteRole(role.id)}
                                   disabled={isDeletingRole}
                                 >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle className="flex items-center space-x-2">
-                                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                                    <span>Delete Role</span>
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete the role
-                                    {`"${role.name}"`}? This action cannot be
-                                    undone and will affect all users assigned to
-                                    this role.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    className="bg-red-600 hover:bg-red-700"
-                                    onClick={() => handleDeleteRole(role.id)}
-                                    disabled={isDeletingRole}
-                                  >
-                                    {isDeletingRole ? (
-                                      <>
-                                        <Loader className="w-4 h-4 mr-2 animate-spin" />
-                                        Deleting...
-                                      </>
-                                    ) : (
-                                      "Delete Role"
-                                    )}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                          {role.isSystem && (
-                            <span className="text-xs text-gray-500">
-                              Protected
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                )}
+                                  {isDeletingRole ? (
+                                    <>
+                                      <Loader className="w-4 h-4 mr-2 animate-spin" />
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    "Delete Role"
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                        {role.isSystem && (
+                          <span className="text-xs text-gray-500">
+                            Protected
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           )}
