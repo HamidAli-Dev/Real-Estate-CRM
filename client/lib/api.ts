@@ -24,7 +24,11 @@ interface ApiEnvelope<T = unknown> {
 }
 
 interface AuthResponse {
-  user?: any;
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+  };
   accessToken?: string;
   refreshToken?: string;
 }
