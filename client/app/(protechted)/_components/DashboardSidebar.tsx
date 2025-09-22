@@ -25,11 +25,13 @@ import {
 } from "lucide-react";
 import WorkspaceSelector from "@/app/(protechted)/_components/workspace/WorkspaceSelector";
 import { cn } from "@/lib/utils";
+import { usePermission } from "@/hooks/usePermission";
 
 const DashboardSidebar = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const workspaceId = searchParams.get("workspaceId");
+  const { can, hasAnyPermission } = usePermission();
 
   const menuData = [
     {
@@ -38,6 +40,7 @@ const DashboardSidebar = () => {
       path: "/dashboard",
       icon: LayoutDashboard,
       description: "Overview & insights",
+      permission: null, //
     },
     {
       title: "Properties",
@@ -47,6 +50,7 @@ const DashboardSidebar = () => {
       path: "/dashboard/properties",
       icon: House,
       description: "Manage listings",
+      permission: "viewProperties",
     },
     {
       title: "Leads",
@@ -56,6 +60,7 @@ const DashboardSidebar = () => {
       path: "/dashboard/leads",
       icon: User,
       description: "Track prospects",
+      permission: "viewLeads",
     },
     {
       title: "Deals",
@@ -65,6 +70,7 @@ const DashboardSidebar = () => {
       path: "/dashboard/deals",
       icon: ClipboardCheck,
       description: "Sales pipeline",
+      permission: "viewDeals",
     },
     {
       title: "Analytics",
@@ -74,6 +80,7 @@ const DashboardSidebar = () => {
       path: "/dashboard/analytics",
       icon: TrendingUp,
       description: "Performance metrics",
+      permission: "viewAnalytics",
     },
   ];
 
@@ -86,6 +93,7 @@ const DashboardSidebar = () => {
       path: "/dashboard/user-management",
       icon: UsersRound,
       description: "Team & permissions",
+      permission: "viewUsers",
     },
     {
       title: "Workspace Settings",
@@ -95,6 +103,7 @@ const DashboardSidebar = () => {
       path: "/dashboard/workspace-settings",
       icon: Settings,
       description: "Configure workspace",
+      permission: "viewSettings",
     },
   ];
 
@@ -142,125 +151,166 @@ const DashboardSidebar = () => {
             Main Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent className="space-y-1">
-            {menuData.map((menuItem) => {
-              const isActive = pathname === menuItem.path;
-              return (
-                <Link key={menuItem.title} href={menuItem.href}>
-                  <div
-                    className={cn(
-                      "group flex items-center justify-between px-3 py-3 transition-all duration-200 cursor-pointer relative",
-                      isActive
-                        ? "bg-white text-gray-900 rounded-r-2xl shadow-lg"
-                        : "text-gray-700 hover:bg-gray-100/80 hover:text-gray-900 hover:shadow-sm rounded-xl"
-                    )}
-                    style={
-                      isActive
-                        ? {
-                            marginRight: "-16px",
-                            paddingRight: "32px",
-                          }
-                        : {}
-                    }
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className={cn(
-                          "p-2 rounded-lg transition-colors duration-200",
-                          isActive
-                            ? "bg-gray-100 text-gray-700"
-                            : "bg-gray-100 text-gray-600 group-hover:bg-gray-200 group-hover:text-gray-700"
-                        )}
-                      >
-                        <menuItem.icon size={16} />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-medium text-sm">
-                          {menuItem.title}
-                        </span>
-                        <span
+            {menuData
+              .filter((menuItem) => {
+                // Always show Dashboard
+                if (!menuItem.permission) return true;
+                // Check if user has the required permission using the hasPermission function
+                switch (menuItem.permission) {
+                  case "viewProperties":
+                    return can.viewProperties();
+                  case "viewLeads":
+                    return can.viewLeads();
+                  case "viewDeals":
+                    return can.viewDeals();
+                  case "viewAnalytics":
+                    return can.viewAnalytics();
+                  default:
+                    return false;
+                }
+              })
+              .map((menuItem) => {
+                const isActive = pathname === menuItem.path;
+                return (
+                  <Link key={menuItem.title} href={menuItem.href}>
+                    <div
+                      className={cn(
+                        "group flex items-center justify-between px-3 py-3 transition-all duration-200 cursor-pointer relative",
+                        isActive
+                          ? "bg-white text-gray-900 rounded-r-2xl shadow-lg"
+                          : "text-gray-700 hover:bg-gray-100/80 hover:text-gray-900 hover:shadow-sm rounded-xl"
+                      )}
+                      style={
+                        isActive
+                          ? {
+                              marginRight: "-16px",
+                              paddingRight: "32px",
+                            }
+                          : {}
+                      }
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div
                           className={cn(
-                            "text-xs transition-colors duration-200",
+                            "p-2 rounded-lg transition-colors duration-200",
                             isActive
-                              ? "text-gray-600"
-                              : "text-gray-500 group-hover:text-gray-600"
+                              ? "bg-gray-100 text-gray-700"
+                              : "bg-gray-100 text-gray-600 group-hover:bg-gray-200 group-hover:text-gray-700"
                           )}
                         >
-                          {menuItem.description}
-                        </span>
+                          <menuItem.icon size={16} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">
+                            {menuItem.title}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-xs transition-colors duration-200",
+                              isActive
+                                ? "text-gray-600"
+                                : "text-gray-500 group-hover:text-gray-600"
+                            )}
+                          >
+                            {menuItem.description}
+                          </span>
+                        </div>
                       </div>
+                      {isActive && (
+                        <ChevronRight size={14} className="text-gray-600" />
+                      )}
                     </div>
-                    {isActive && (
-                      <ChevronRight size={14} className="text-gray-600" />
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
+                  </Link>
+                );
+              })}
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Management Section */}
-        <SidebarGroup>
-          <SidebarGroupLabel className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            Management
-          </SidebarGroupLabel>
+        {/* Management Section - Only show if user has any management permissions */}
+        {managementData.some((item) => {
+          switch (item.permission) {
+            case "viewUsers":
+              return can.viewUsers();
+            case "viewSettings":
+              return can.viewSettings();
+            default:
+              return false;
+          }
+        }) && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              Management
+            </SidebarGroupLabel>
           <SidebarGroupContent className="space-y-1">
-            {managementData.map((menuItem) => {
-              const isActive = pathname === menuItem.path;
-              return (
-                <Link key={menuItem.title} href={menuItem.href}>
-                  <div
-                    className={cn(
-                      "group flex items-center justify-between px-3 py-3 transition-all duration-200 cursor-pointer relative",
-                      isActive
-                        ? "bg-white text-gray-900 rounded-r-2xl shadow-lg"
-                        : "text-gray-700 hover:bg-gray-100/80 hover:text-gray-900 hover:shadow-sm rounded-xl"
-                    )}
-                    style={
-                      isActive
-                        ? {
-                            marginRight: "-16px",
-                            paddingRight: "32px",
-                          }
-                        : {}
-                    }
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className={cn(
-                          "p-2 rounded-lg transition-colors duration-200",
-                          isActive
-                            ? "bg-gray-100 text-gray-700"
-                            : "bg-gray-100 text-gray-600 group-hover:bg-gray-200 group-hover:text-gray-700"
-                        )}
-                      >
-                        <menuItem.icon size={16} />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-medium text-sm">
-                          {menuItem.title}
-                        </span>
-                        <span
+            {managementData
+              .filter((menuItem) => {
+                // Check if user has the required permission
+                switch (menuItem.permission) {
+                  case "viewUsers":
+                    return can.viewUsers();
+                  case "viewSettings":
+                    return can.viewSettings();
+                  default:
+                    return false;
+                }
+              })
+              .map((menuItem) => {
+                const isActive = pathname === menuItem.path;
+                return (
+                  <Link key={menuItem.title} href={menuItem.href}>
+                    <div
+                      className={cn(
+                        "group flex items-center justify-between px-3 py-3 transition-all duration-200 cursor-pointer relative",
+                        isActive
+                          ? "bg-white text-gray-900 rounded-r-2xl shadow-lg"
+                          : "text-gray-700 hover:bg-gray-100/80 hover:text-gray-900 hover:shadow-sm rounded-xl"
+                      )}
+                      style={
+                        isActive
+                          ? {
+                              marginRight: "-16px",
+                              paddingRight: "32px",
+                            }
+                          : {}
+                      }
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div
                           className={cn(
-                            "text-xs transition-colors duration-200",
+                            "p-2 rounded-lg transition-colors duration-200",
                             isActive
-                              ? "text-gray-600"
-                              : "text-gray-500 group-hover:text-gray-600"
+                              ? "bg-gray-100 text-gray-700"
+                              : "bg-gray-100 text-gray-600 group-hover:bg-gray-200 group-hover:text-gray-700"
                           )}
                         >
-                          {menuItem.description}
-                        </span>
+                          <menuItem.icon size={16} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">
+                            {menuItem.title}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-xs transition-colors duration-200",
+                              isActive
+                                ? "text-gray-600"
+                                : "text-gray-500 group-hover:text-gray-600"
+                            )}
+                          >
+                            {menuItem.description}
+                          </span>
+                        </div>
                       </div>
+                      {isActive && (
+                        <ChevronRight size={14} className="text-gray-600" />
+                      )}
                     </div>
-                    {isActive && (
-                      <ChevronRight size={14} className="text-gray-600" />
-                    )}
-                  </div>
-                </Link>
-              );
-            })}
-          </SidebarGroupContent>
-        </SidebarGroup>
+                  </Link>
+                );
+              })}
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );
