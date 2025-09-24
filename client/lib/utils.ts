@@ -12,6 +12,10 @@ export const protectedRoutes = [
   "/properties",
   "/clients",
   "/settings",
+  "/leads",
+  "/deals",
+  "/user-management",
+  "/workspace-settings",
 ];
 export const publicRoutes = [
   "/auth/login",
@@ -21,12 +25,18 @@ export const publicRoutes = [
   "/faq",
 ];
 
+export const authRoutes = ["/auth/login", "/auth/register"];
+
 export function isProtectedRoute(pathname: string): boolean {
   return protectedRoutes.some((route) => pathname.startsWith(route));
 }
 
 export function isPublicRoute(pathname: string): boolean {
   return publicRoutes.some((route) => pathname === route);
+}
+
+export function isAuthRoute(pathname: string): boolean {
+  return authRoutes.some((route) => pathname.startsWith(route));
 }
 
 export function shouldRedirectToDashboard(pathname: string): boolean {

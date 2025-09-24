@@ -1,4 +1,5 @@
 import React, { Suspense } from "react";
+import AuthRouteProtection from "./_components/AuthRouteProtection";
 
 const AuthLayout = ({
   children,
@@ -7,7 +8,10 @@ const AuthLayout = ({
 }>) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full">
-      <Suspense fallback={null}>{children}</Suspense>
+      <Suspense fallback={null}>
+        <AuthRouteProtection />
+        {children}
+      </Suspense>
     </div>
   );
 };

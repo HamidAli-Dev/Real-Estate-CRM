@@ -8,6 +8,7 @@ import { getCurrentUserQueryFn, refreshTokenFn } from "@/lib/api";
 import { getCurrentUserResponseType, userType } from "@/types/api.types";
 import API, { tokenStorage } from "@/lib/axios-client";
 import { MandatoryPasswordChangeModal } from "@/components/forms/MandatoryPasswordChangeModal";
+import { isProtectedRoute } from "@/lib/utils";
 
 interface AuthContextProps {
   user?: getCurrentUserResponseType | null;
@@ -18,16 +19,6 @@ interface AuthContextProps {
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
-
-// Helper function to check if current route is protected
-const isProtectedRoute = (pathname: string) => {
-  return (
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/workspace") ||
-    pathname.startsWith("/properties") ||
-    pathname.startsWith("/analytics")
-  );
-};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
@@ -41,7 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Initialize auth state after hydration and check localStorage
   useEffect(() => {
     setIsInitialized(true);
-    
+
     // Check if we have tokens in localStorage but no user data
     if (tokenStorage.hasTokens()) {
       console.log("🔑 Found tokens in localStorage, will fetch user data");
@@ -93,13 +84,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       ) {
         console.log("🚑 Authentication error, clearing tokens and redirecting");
         tokenStorage.removeTokens();
-        
+
         // Redirect to login if on protected route
         if (isProtectedRoute(pathname)) {
           router.push("/auth/login");
         }
       }
-      
+
       setUser(null);
     }
   }, [isInitialized, error, user, pathname, router]);
@@ -111,9 +102,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (data.user) {
         setUser(data);
         console.log("✅ User authenticated successfully");
+
+        // Redirect authenticated users away from auth pages
+        if (pathname.startsWith("/auth/")) {
+          router.replace("/dashboard");
+        }
       }
     }
-  }, [isInitialized, data, user]);
+  }, [isInitialized, data, user, pathname, router]);
 
   // Show password change modal if user must update password
   useEffect(() => {
@@ -171,7 +167,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       // Clear tokens from localStorage
       tokenStorage.removeTokens();
-      
+
       setUser(null);
       queryClient.clear(); // clear all react-query cache
       router.push("/auth/login");
