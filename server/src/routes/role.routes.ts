@@ -32,8 +32,8 @@ router.post(
   createRoleController
 );
 
-// Get role by ID
-router.get("/:roleId", checkPermission("VIEW_USERS"), getRoleByIdController);
+// Get role by ID - Allow users to get their own role info without VIEW_USERS permission
+router.get("/:roleId", getRoleByIdController);
 
 // Update role permissions
 router.put(

@@ -71,7 +71,6 @@ export const usePermission = () => {
 
         // Get role permissions
         const roleResponse = await API.get(`/roles/${userData.role.id}`);
-        console.log("😪roleResponse", roleResponse);
         // Since axios interceptor returns res.data, roleResponse is already the data object
         const roleData = (roleResponse as any).data || roleResponse;
 
@@ -137,7 +136,7 @@ export const usePermission = () => {
     };
 
     return {
-      // Property permissions
+      // Property permissions - Fixed to match backend permission names
       viewProperties: () => hasPermission("VIEW_PROPERTIES"),
       createProperties: () => hasPermission("CREATE_PROPERTIES"),
       editProperties: () => hasPermission("EDIT_PROPERTIES"),

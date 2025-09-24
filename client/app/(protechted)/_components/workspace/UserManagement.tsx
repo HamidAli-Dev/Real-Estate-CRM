@@ -85,7 +85,8 @@ const UserManagement = () => {
   const [editingUser, setEditingUser] = useState<
     WorkspaceUserResponseType | null | undefined
   >(null);
-  const [editingRole, setEditingRole] = useState<getWorkspaceRolesQueryResponseType | null>(null);
+  const [editingRole, setEditingRole] =
+    useState<getWorkspaceRolesQueryResponseType | null>(null);
   const [creatingRole, setCreatingRole] = useState(false);
   const { currentWorkspace } = useWorkspaceContext();
   const { can } = usePermission();
@@ -566,10 +567,12 @@ const UserManagement = () => {
                         {role.rolePermissions
                           ?.slice(0, 3)
                           .map((rolePermission) => {
-                            const permission = Array.isArray(rolePermission.permission) 
-                              ? rolePermission.permission[0] 
+                            const permission = Array.isArray(
+                              rolePermission.permission
+                            )
+                              ? rolePermission.permission[0]
                               : rolePermission.permission;
-                            
+
                             return permission ? (
                               <Badge
                                 key={rolePermission.id}
@@ -601,10 +604,12 @@ const UserManagement = () => {
                                     {role.rolePermissions?.map(
                                       (rolePermission) => {
                                         // Handle both array and single object cases for backward compatibility
-                                        const permission = Array.isArray(rolePermission.permission) 
-                                          ? rolePermission.permission[0] 
+                                        const permission = Array.isArray(
+                                          rolePermission.permission
+                                        )
+                                          ? rolePermission.permission[0]
                                           : rolePermission.permission;
-                                        
+
                                         return permission ? (
                                           <div
                                             key={rolePermission.id}

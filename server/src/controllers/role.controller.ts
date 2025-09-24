@@ -11,6 +11,7 @@ import {
   getPermissionsService,
 } from "../services/role.service";
 import { BadRequestException } from "../utils/AppError";
+import { db } from "../utils/db";
 
 // Create a new role
 export const createRoleController = asyncHandler(
@@ -73,12 +74,69 @@ export const getWorkspaceRolesController = asyncHandler(
   }
 );
 
-// Get role by ID
+// Get role by ID - Modified to ensure users can only get roles they're assigned to
 export const getRoleByIdController = asyncHandler(
   async (req: Request, res: Response) => {
     const { roleId } = req.params;
+    const userId = req.user.id;
 
-    const role = await getRoleByIdService(roleId);
+    // First, check if the user is assigned to this role in any workspace
+    const userRole = await db.userWorkspace.findFirst({
+      where: {
+        userId,
+        roleId,
+      },
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Also check if user is owner of a workspace
+    const ownerWorkspaces = await db.workspace.findMany({
+      where: {
+        users: {
+          some: {
+            userId,
+            role: {
+              isSystem: true,
+              name: "Owner",
+            },
+          },
+        },
+      },
+    });
+
+    // Check if the requested role belongs to any of the user's owner workspaces
+    let ownerCheck = null;
+    if (ownerWorkspaces.length > 0) {
+      const ownerWorkspaceIds = ownerWorkspaces.map((w) => w.id);
+      ownerCheck = await db.role.findFirst({
+        where: {
+          id: roleId,
+          workspaceId: {
+            in: ownerWorkspaceIds,
+          },
+        },
+      });
+    }
+
+    // If user has the role assigned or is an owner of the workspace with this role, fetch the full role details
+    let role = userRole?.role;
+    if (!role && ownerCheck) {
+      role = await getRoleByIdService(roleId);
+    }
+
+    if (!role) {
+      throw new BadRequestException("Role not found or access denied");
+    }
 
     return res.status(HTTPSTATUS.OK).json({
       message: "Role fetched successfully",
