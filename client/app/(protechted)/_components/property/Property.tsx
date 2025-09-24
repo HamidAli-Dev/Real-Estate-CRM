@@ -23,10 +23,12 @@ import {
 import PropertyForm from "@/app/(protechted)/_components/property/PropertyForm";
 
 import PropertiesList from "../../_components/property/PropertiesList";
+import { usePermission } from "@/hooks/usePermission";
 
 const Property = () => {
   const { currentWorkspace } = useWorkspaceContext();
   const { user } = useAuthContext();
+  const { can } = usePermission();
   const queryClient = useQueryClient();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -112,7 +114,7 @@ const Property = () => {
           </p>
         </div>
 
-        {canManageProperties && (
+        {can.createProperties() && (
           <Button
             className="flex items-center space-x-2"
             onClick={() => setShowCreateForm(true)}

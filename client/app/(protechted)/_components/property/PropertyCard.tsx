@@ -14,13 +14,13 @@ import {
 } from "@/components/ui/dialog";
 
 import { propertyType } from "@/types/api.types";
+import { usePermission } from "@/hooks/usePermission";
 
 interface PropertyCardProps {
   property: propertyType;
   onEdit?: () => void;
   onDelete?: () => void;
   onAssignLead?: () => void;
-  canManage?: boolean;
 }
 
 const PropertyCard = ({
@@ -28,10 +28,10 @@ const PropertyCard = ({
   onEdit,
   onDelete,
   onAssignLead,
-  canManage = false,
 }: PropertyCardProps) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const { can } = usePermission();
 
   const mainImage = property.images[0]?.url || "/placeholder-property.jpg";
   const thumbnailImages = property.images.slice(1, 6);
@@ -99,20 +99,20 @@ const PropertyCard = ({
           </Badge>
 
           {/* Action Buttons */}
-          {canManage && (
-            <div className="absolute top-3 right-3 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              {onEdit && (
-                <Button size="sm" variant="secondary" onClick={onEdit}>
-                  Edit
-                </Button>
-              )}
-              {onDelete && (
-                <Button size="sm" variant="destructive" onClick={onDelete}>
-                  Delete
-                </Button>
-              )}
-            </div>
-          )}
+
+          <div className="absolute top-3 right-3 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            {can.editProperties() && (
+              <Button size="sm" variant="secondary" onClick={onEdit}>
+                Edit
+              </Button>
+            )}
+
+            {can.deleteProperties() && (
+              <Button size="sm" variant="destructive" onClick={onDelete}>
+                Delete
+              </Button>
+            )}
+          </div>
 
           {/* Property Price */}
           <div className="absolute bottom-3 right-3">

@@ -18,7 +18,7 @@ import { deletePropertyMutationFn, getPropertiesQueryFn } from "@/lib/api";
 import { propertyType } from "@/types/api.types";
 import PropertyCard from "./PropertyCard";
 import { useWorkspaceContext } from "@/context/workspace-provider";
-import { useAuthContext } from "@/context/auth-provider";
+import { usePermission } from "@/hooks/usePermission";
 
 interface PropertiesListProps {
   onEditProperty: (property: propertyType) => void;
@@ -26,7 +26,7 @@ interface PropertiesListProps {
 
 const PropertiesList = ({ onEditProperty }: PropertiesListProps) => {
   const { currentWorkspace } = useWorkspaceContext();
-  const { user } = useAuthContext();
+  const { can } = usePermission();
   const queryClient = useQueryClient();
 
   const [propertyToDelete, setPropertyToDelete] = useState<propertyType | null>(
@@ -43,8 +43,6 @@ const PropertiesList = ({ onEditProperty }: PropertiesListProps) => {
     queryFn: () => getPropertiesQueryFn(currentWorkspace!.workspace.id),
     enabled: !!currentWorkspace?.workspace.id,
   });
-
-  const canManageProperties = user?.user.role.name === "Owner";
 
   // Delete property mutation
   const { mutate: deleteProperty, isPending: isDeleting } = useMutation({
@@ -118,17 +116,16 @@ const PropertiesList = ({ onEditProperty }: PropertiesListProps) => {
                   key={property.id}
                   property={property}
                   onEdit={
-                    canManageProperties
+                    can.editProperties()
                       ? () => onEditProperty(property)
                       : undefined
                   }
                   onDelete={
-                    canManageProperties
+                    can.deleteProperties()
                       ? () => handleDeleteProperty(property)
                       : undefined
                   }
                   onAssignLead={() => handleAssignLead(property)}
-                  canManage={canManageProperties}
                 />
               ))}
             {propertiesData?.length === 0 && (
