@@ -5,7 +5,7 @@ const UserManagementPage = () => {
   return (
     <div>
       <TopBar />
-      <div className="p-6">
+      <div className="">
         <UserManagement />
       </div>
     </div>

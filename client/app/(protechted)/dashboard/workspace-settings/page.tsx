@@ -5,7 +5,7 @@ const WorkspaceSettingsPage = () => {
   return (
     <div>
       <TopBar />
-      <div className="p-6">
+      <div className="">
         <WorkspaceSettings />
       </div>
     </div>

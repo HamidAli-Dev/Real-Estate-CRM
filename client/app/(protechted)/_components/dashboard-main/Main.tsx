@@ -24,8 +24,11 @@ import {
 import TopBar from "../TopBar";
 import CreateWorkspaceDialog from "../workspace/CreateWorkspaceDialog";
 import AnalyticsOverview from "./AnalyticsOverview";
+import { useDashboardAccess } from "@/hooks/useDashboardAccess";
 
 const Main = () => {
+  const { isLoading: isDashboardLoading } = useDashboardAccess();
+
   const { userWorkspaces, isLoading } = useWorkspaceContext();
   const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] =
     useState(false);
@@ -69,6 +72,14 @@ const Main = () => {
             <p className="text-gray-600">Preparing your workspace...</p>
           </motion.div>
         </div>
+      </div>
+    );
+  }
+
+  if (isDashboardLoading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-white">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-cprimary border-t-transparent" />
       </div>
     );
   }
@@ -156,7 +167,7 @@ const Main = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
       <TopBar />
-      <div className="pt-24 px-6 pb-6 space-y-8">
+      <div className="space-y-8">
         {/* Key Metrics Cards */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

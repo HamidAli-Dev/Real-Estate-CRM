@@ -21,7 +21,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             }
           >
             <DashboardSidebar />
-            <main className="flex-1 w-full min-w-0 overflow-x-hidden pt-[76px]">
+            <main className="flex-1 w-full min-w-0 overflow-x-hidden px-6 pt-30 pb-6">
               {children}
             </main>
           </SidebarProvider>

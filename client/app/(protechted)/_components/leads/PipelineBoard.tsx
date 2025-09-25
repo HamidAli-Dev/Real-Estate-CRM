@@ -369,7 +369,7 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
   return (
     <div className="flex flex-col h-full bg-gray-50 overflow-hidden">
       {/* Fixed Header - Never scrolls horizontally */}
-      <div className="flex-shrink-0 px-6 py-4 bg-white border-b border-gray-200">
+      <div className="flex-shrink-0 bg-white">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Lead Pipeline</h1>
@@ -474,7 +474,7 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
             onDragEnd={handleDragEnd}
             collisionDetection={closestCenter}
           >
-            <div className="h-full overflow-x-auto overflow-y-hidden">
+            <div className="h-full overflow-x-auto overflow-y-hidden !mx-6">
               <div className="flex space-x-6 h-full min-w-max px-6 py-4">
                 {(filterStage === "all"
                   ? stages

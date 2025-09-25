@@ -11,6 +11,7 @@ import {
   ChevronDown,
   MessageSquare,
 } from "lucide-react";
+import Link from "next/link";
 
 import {
   DropdownMenu,
@@ -28,6 +29,7 @@ import { useAuthContext } from "@/context/auth-provider";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import NotificationDropdown from "@/app/(protechted)/_components/notifications/NotificationDropdown";
 import { useSocketContext } from "@/context/socket-provider";
+import { usePermission } from "@/hooks/usePermission";
 
 const TopBar = () => {
   const [isOpenDropdown, setIsOpenDropdown] = useState(false);
@@ -37,6 +39,7 @@ const TopBar = () => {
   const { user, logout } = useAuthContext();
   const { isConnected } = useSocketContext();
   const { open } = useSidebar();
+  const { isOwner } = usePermission();
 
   const handleLogout = async () => {
     await logout();
@@ -168,10 +171,14 @@ const TopBar = () => {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
+                {!isOwner() && (
+                  <DropdownMenuItem className="cursor-pointer" asChild>
+                    <Link href="/dashboard/user-dashboard">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Your Dashboard</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>

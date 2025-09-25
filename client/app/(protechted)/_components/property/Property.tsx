@@ -6,7 +6,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-
 import { useWorkspaceContext } from "@/context/workspace-provider";
 import { useAuthContext } from "@/context/auth-provider";
 import {
@@ -21,7 +20,6 @@ import {
   propertyCategoryType,
 } from "@/types/api.types";
 import PropertyForm from "@/app/(protechted)/_components/property/PropertyForm";
-
 import PropertiesList from "../../_components/property/PropertiesList";
 import { usePermission } from "@/hooks/usePermission";
 
@@ -103,7 +101,7 @@ const Property = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

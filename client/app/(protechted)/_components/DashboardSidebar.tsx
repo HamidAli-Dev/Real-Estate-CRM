@@ -4,15 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import {
   ClipboardCheck,
   House,
   LayoutDashboard,
@@ -22,6 +13,16 @@ import {
   Settings,
   ChevronRight,
 } from "lucide-react";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import WorkspaceSelector from "@/app/(protechted)/_components/workspace/WorkspaceSelector";
 import { cn } from "@/lib/utils";
 import { usePermission } from "@/hooks/usePermission";
@@ -32,7 +33,7 @@ const DashboardSidebar = () => {
   const searchParams = useSearchParams();
   const workspaceId = searchParams.get("workspaceId");
   const { isLoading: workspaceLoading } = useWorkspaceContext();
-  const { can, isLoading } = usePermission();
+  const { can, isOwner, isLoading } = usePermission();
 
   const sidebarData = [
     // Main Navigation Group
@@ -44,6 +45,19 @@ const DashboardSidebar = () => {
       description: "Overview & insights",
       permission: null,
       group: "main",
+      showForOwner: true, // Only show for owners
+    },
+    {
+      title: "Your Dashboard",
+      href: `/dashboard/user-dashboard${
+        workspaceId ? `?workspaceId=${workspaceId}` : ""
+      }`,
+      path: "/dashboard/user-dashboard",
+      icon: User,
+      description: "Your profile & permissions",
+      permission: null,
+      group: "main",
+      showForOwner: false, // Only show for non-owners
     },
     {
       title: "Properties",
@@ -201,7 +215,9 @@ const DashboardSidebar = () => {
                   .filter(
                     (menuItem) =>
                       menuItem.group === "main" &&
-                      hasPermission(menuItem.permission)
+                      hasPermission(menuItem.permission) &&
+                      (menuItem.showForOwner === undefined ||
+                        menuItem.showForOwner === isOwner())
                   )
                   .map((menuItem) => {
                     const isActive = pathname === menuItem.path;
@@ -277,7 +293,10 @@ const DashboardSidebar = () => {
           // Show actual management items when permissions are loaded
           sidebarData.some(
             (item) =>
-              item.group === "management" && hasPermission(item.permission)
+              item.group === "management" &&
+              hasPermission(item.permission) &&
+              (item.showForOwner === undefined ||
+                item.showForOwner === isOwner())
           ) && (
             <SidebarGroup>
               <SidebarGroupLabel className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
@@ -288,7 +307,9 @@ const DashboardSidebar = () => {
                   .filter(
                     (menuItem) =>
                       menuItem.group === "management" &&
-                      hasPermission(menuItem.permission)
+                      hasPermission(menuItem.permission) &&
+                      (menuItem.showForOwner === undefined ||
+                        menuItem.showForOwner === isOwner())
                   )
                   .map((menuItem) => {
                     const isActive = pathname === menuItem.path;
