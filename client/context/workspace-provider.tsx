@@ -41,6 +41,7 @@ export const WorkspaceProvider = ({
     data: workspacesData,
     isLoading: workspacesLoading,
     isError: workspacesError,
+    isSuccess: workspacesSuccess,
   } = useQuery<userWorkspaceType[]>({
     queryKey: ["userWorkspaces"],
     queryFn: getUserWorkspacesQueryFn,
@@ -52,6 +53,7 @@ export const WorkspaceProvider = ({
     data: currentWorkspaceData,
     isLoading: currentWorkspaceLoading,
     isError: currentWorkspaceError,
+    isSuccess: currentWorkspaceSuccess,
   } = useQuery<userWorkspaceType>({
     queryKey: ["workspace", workspaceId],
     queryFn: () => getWorkspaceByIdQueryFn(workspaceId!),
@@ -65,7 +67,6 @@ export const WorkspaceProvider = ({
       setCurrentWorkspace(currentWorkspaceData);
     } else if (!workspaceId) {
       // Clear current workspace if no workspaceId in URL
-
       setCurrentWorkspace(null);
     } else if (currentWorkspaceError) {
       console.warn("⚠️ Workspace error:", currentWorkspaceError);
@@ -140,7 +141,35 @@ export const WorkspaceProvider = ({
     setCurrentWorkspace(null);
   };
 
-  const isLoading = workspacesLoading || currentWorkspaceLoading || authLoading;
+  // Improved loading state logic
+  const isLoading = (() => {
+    // If we're still loading auth, we're definitely loading
+    if (authLoading) return true;
+
+    // If user is not available yet, we're still loading
+    if (!user) return true;
+
+    // If workspaces query hasn't been enabled yet (user not available), we're not loading
+    if (!user) return false;
+
+    // If workspaces query is loading and hasn't succeeded yet, we're loading
+    if (workspacesLoading && !workspacesSuccess) return true;
+
+    // If we need a specific workspace and it's loading without having succeeded, we're loading
+    if (workspaceId && currentWorkspaceLoading && !currentWorkspaceSuccess)
+      return true;
+
+    // If we've successfully fetched workspaces and don't need a specific workspace, we're done loading
+    if (workspacesSuccess && !workspaceId) return false;
+
+    // If we've successfully fetched both workspaces and current workspace (when needed), we're done loading
+    if (workspacesSuccess && (!workspaceId || currentWorkspaceSuccess))
+      return false;
+
+    // Default to not loading
+    return false;
+  })();
+
   const isError = workspacesError || currentWorkspaceError;
 
   return (

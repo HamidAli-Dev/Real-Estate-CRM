@@ -68,8 +68,8 @@ export interface editWorkspaceType {
 }
 
 export interface createWorkspaceResponseType {
-  message: string;
   data: {
+    message: string;
     workspace: {
       id: string;
       name: string;

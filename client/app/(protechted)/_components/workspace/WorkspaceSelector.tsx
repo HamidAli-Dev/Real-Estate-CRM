@@ -101,15 +101,6 @@ const WorkspaceSelector = () => {
   const { mutate: createWorkspace, isPending } = useMutation({
     mutationFn: createWorkspaceMutationFn,
     onSuccess: (data) => {
-      // Defensive check for data structure
-      if (!data || !data.data.workspace) {
-        console.error("❌ Unexpected data structure:", data);
-        toast.error("Creation Failed", {
-          description: "Received unexpected response format from server",
-        });
-        return;
-      }
-
       toast.success("Workspace Created!", {
         description: `Your workspace "${data.data.workspace.name}" has been created successfully.`,
       });

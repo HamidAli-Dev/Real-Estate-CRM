@@ -50,7 +50,7 @@ export const registerMutationFn = async (data: {
   role?: string;
 }) => {
   const response = await API.post("/auth/register-owner", data);
-  
+
   // Store tokens in localStorage if present
   if (response.data?.accessToken) {
     tokenStorage.setAccessToken(response.data.accessToken);
@@ -58,7 +58,7 @@ export const registerMutationFn = async (data: {
   if (response.data?.refreshToken) {
     tokenStorage.setRefreshToken(response.data.refreshToken);
   }
-  
+
   return response;
 };
 
@@ -67,7 +67,7 @@ export const loginMutationFn = async (data: {
   password: string;
 }) => {
   const response = await API.post("/auth/login", data);
-  
+
   // Store tokens in localStorage
   const responseData = (response as ApiEnvelope<AuthResponse>).data;
   if (responseData?.accessToken) {
@@ -76,11 +76,14 @@ export const loginMutationFn = async (data: {
   if (responseData?.refreshToken) {
     tokenStorage.setRefreshToken(responseData.refreshToken);
   }
-  
+
   return responseData;
 };
 
-export const refreshTokenFn = async (): Promise<{ message: string; accessToken: string }> => {
+export const refreshTokenFn = async (): Promise<{
+  message: string;
+  accessToken: string;
+}> => {
   console.log("🔄 Attempting to refresh token...");
 
   try {
@@ -93,14 +96,12 @@ export const refreshTokenFn = async (): Promise<{ message: string; accessToken: 
     const response = await refreshAPI.post("/auth/refresh-token", {
       refreshToken,
     });
-    
-    console.log("✅ Refresh token response:", response.data);
-    
+
     // Store new access token
     if (response.data?.data?.accessToken) {
       tokenStorage.setAccessToken(response.data.data.accessToken);
     }
-    
+
     return {
       message: response.data.message,
       accessToken: response.data.data.accessToken,
@@ -121,12 +122,12 @@ export const getCurrentUserQueryFn =
   };
 
 // Workspace API functions
-export const createWorkspaceMutationFn = async (data: { name: string }) => {
+export const createWorkspaceMutationFn = async (data: {
+  name: string;
+}): Promise<createWorkspaceResponseType> => {
   const response = await API.post("/workspace/create", data);
 
-  console.log("🚀 createWorkspaceMutationFn response:", response.data);
-
-  return response.data as createWorkspaceResponseType;
+  return response as unknown as createWorkspaceResponseType;
 };
 
 export const editWorkspaceMutationFn = async (data: {

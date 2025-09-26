@@ -47,13 +47,13 @@ const Main = () => {
 
   // Show create workspace dialog when user has no workspaces
   useEffect(() => {
-    if (!isLoading && userWorkspaces.length === 0) {
+    if (!isLoading && userWorkspaces && userWorkspaces.length === 0) {
       setShowCreateWorkspaceDialog(true);
     }
-  }, [isLoading, userWorkspaces.length]);
+  }, [isLoading, userWorkspaces]);
 
   // Show loading state
-  if (isLoading) {
+  if (isLoading || isDashboardLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
         <TopBar />
@@ -76,16 +76,8 @@ const Main = () => {
     );
   }
 
-  if (isDashboardLoading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-cprimary border-t-transparent" />
-      </div>
-    );
-  }
-
   // Show create workspace prompt if user has no workspaces
-  if (userWorkspaces.length === 0) {
+  if (userWorkspaces && userWorkspaces.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
         <TopBar />
