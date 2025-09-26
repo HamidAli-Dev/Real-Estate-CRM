@@ -56,6 +56,10 @@ export const usePermission = () => {
               "CREATE_DEALS",
               "EDIT_DEALS",
               "DELETE_DEALS",
+              "VIEW_PIPELINE_STAGES",
+              "CREATE_PIPELINE_STAGES",
+              "EDIT_PIPELINE_STAGES",
+              "DELETE_PIPELINE_STAGES",
               "VIEW_USERS",
               "INVITE_USERS",
               "EDIT_USER_ROLES",
@@ -112,6 +116,12 @@ export const usePermission = () => {
         editDeals: () => false,
         deleteDeals: () => false,
 
+        // Pipeline stage permissions
+        viewPipelineStages: () => false,
+        createPipelineStages: () => false,
+        editPipelineStages: () => false,
+        deletePipelineStages: () => false,
+
         // User management permissions
         viewUsers: () => false,
         inviteUsers: () => false,
@@ -153,6 +163,12 @@ export const usePermission = () => {
       createDeals: () => hasPermission("CREATE_DEALS"),
       editDeals: () => hasPermission("EDIT_DEALS"),
       deleteDeals: () => hasPermission("DELETE_DEALS"),
+
+      // Pipeline stage permissions
+      viewPipelineStages: () => hasPermission("VIEW_PIPELINE_STAGES"),
+      createPipelineStages: () => hasPermission("CREATE_PIPELINE_STAGES"),
+      editPipelineStages: () => hasPermission("EDIT_PIPELINE_STAGES"),
+      deletePipelineStages: () => hasPermission("DELETE_PIPELINE_STAGES"),
 
       // User management permissions
       viewUsers: () => hasPermission("VIEW_USERS"),

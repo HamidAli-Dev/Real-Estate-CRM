@@ -403,6 +403,8 @@ function getPermissionGroup(permission: string): string {
       ? "Leads"
       : resource === "DEALS"
       ? "Deals"
+      : resource === "PIPELINE"
+      ? "Pipeline"
       : resource === "USERS"
       ? "Users"
       : resource === "SETTINGS"

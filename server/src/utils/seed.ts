@@ -19,6 +19,12 @@ const permissions = [
   { name: "EDIT_DEALS", group: "Deals" },
   { name: "DELETE_DEALS", group: "Deals" },
 
+  // Pipeline stage permissions
+  { name: "VIEW_PIPELINE_STAGES", group: "Pipeline" },
+  { name: "CREATE_PIPELINE_STAGES", group: "Pipeline" },
+  { name: "EDIT_PIPELINE_STAGES", group: "Pipeline" },
+  { name: "DELETE_PIPELINE_STAGES", group: "Pipeline" },
+
   // User management permissions
   { name: "VIEW_USERS", group: "Users" },
   { name: "INVITE_USERS", group: "Users" },
@@ -143,6 +149,10 @@ async function main() {
         "CREATE_DEALS",
         "EDIT_DEALS",
         "DELETE_DEALS",
+        "VIEW_PIPELINE_STAGES",
+        "CREATE_PIPELINE_STAGES",
+        "EDIT_PIPELINE_STAGES",
+        "DELETE_PIPELINE_STAGES",
         "VIEW_USERS",
         "INVITE_USERS",
         "VIEW_ANALYTICS",
@@ -169,6 +179,7 @@ async function main() {
         "VIEW_DEALS",
         "CREATE_DEALS",
         "EDIT_DEALS",
+        "VIEW_PIPELINE_STAGES",
       ].includes(p.name)
     );
     for (const perm of agentPermissions) {

@@ -18,35 +18,35 @@ pipelineRoutes.use(authenticate);
 // Create pipeline stage
 pipelineRoutes.post(
   "/:workspaceId/stages",
-  checkPermission("EDIT_SETTINGS"),
+  checkPermission("CREATE_PIPELINE_STAGES"),
   createPipelineStageController
 );
 
 // Get pipeline stages by workspace
 pipelineRoutes.get(
   "/:workspaceId/stages",
-  checkPermission("VIEW_LEADS"),
+  checkPermission("VIEW_PIPELINE_STAGES"),
   getPipelineStagesController
 );
 
 // Update pipeline stage
 pipelineRoutes.put(
   "/:workspaceId/stages/:stageId",
-  checkPermission("EDIT_SETTINGS"),
+  checkPermission("EDIT_PIPELINE_STAGES"),
   updatePipelineStageController
 );
 
 // Delete pipeline stage
 pipelineRoutes.delete(
   "/:workspaceId/stages/:stageId",
-  checkPermission("EDIT_SETTINGS"),
+  checkPermission("DELETE_PIPELINE_STAGES"),
   deletePipelineStageController
 );
 
 // Reorder pipeline stages
 pipelineRoutes.patch(
   "/:workspaceId/stages/reorder",
-  checkPermission("EDIT_SETTINGS"),
+  checkPermission("EDIT_PIPELINE_STAGES"),
   reorderPipelineStagesController
 );
 
