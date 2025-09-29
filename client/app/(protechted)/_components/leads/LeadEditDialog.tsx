@@ -34,15 +34,19 @@ export const LeadEditDialog: React.FC<LeadEditDialogProps> = ({
   onClose,
   workspaceId,
 }) => {
-  const { data: workspaceUsers = [] } = useWorkspaceUsers(workspaceId);
-  const { user } = useAuthContext();
   const { can } = usePermission();
+  const { data: workspaceUsers = [] } = useWorkspaceUsers(workspaceId, {
+    enabled: !!workspaceId && can.viewUsers(),
+  });
+  const { user } = useAuthContext();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [formData, setFormData] = useState<UpdateLeadData>({});
 
   const { data: stages = [] } = usePipelineStages(workspaceId);
-  const { data: properties = [] } = useProperties(workspaceId);
+  const { data: properties = [] } = useProperties(workspaceId, {
+    enabled: !!workspaceId && can.viewProperties(),
+  });
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
 

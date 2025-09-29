@@ -45,11 +45,14 @@ export const useWorkspaceUsers = (
         );
         return [];
       } catch (error: any) {
+        // Handle permission errors gracefully
         if (
           error?.data?.errorCode === "VALIDATION_ERROR" &&
           error?.data?.message?.includes("Required permission")
         ) {
-          throw error;
+          console.log("Permission denied for VIEW_USERS");
+          // Return empty array instead of throwing error when permission is denied
+          return [];
         }
         console.error("❌ Error fetching workspace users:", error);
         return [];

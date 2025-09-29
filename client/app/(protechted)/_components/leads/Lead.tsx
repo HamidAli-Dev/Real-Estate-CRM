@@ -5,6 +5,7 @@ import { useWorkspaceContext } from "@/context/workspace-provider";
 import { Button } from "@/components/ui/button";
 import TopBar from "../TopBar";
 import { PipelineBoard } from "./PipelineBoard";
+import PermissionBasedRouteProtection from "../PermissionBasedRouteProtection";
 
 const Lead = () => {
   const router = useRouter();
@@ -62,6 +63,11 @@ const Lead = () => {
     <div>
       <TopBar />
       <div className="">
+        <PermissionBasedRouteProtection
+          permission="VIEW_LEADS"
+          redirectTo="/dashboard/user-dashboard"
+          loadingMessage="Checking permissions..."
+        />
         <PipelineBoard workspaceId={currentWorkspace.workspace.id || ""} />;
       </div>
     </div>

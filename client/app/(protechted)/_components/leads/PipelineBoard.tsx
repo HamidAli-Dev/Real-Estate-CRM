@@ -125,7 +125,7 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
     isError: workspaceUsersError,
     error: workspaceUsersFetchError,
   } = useWorkspaceUsers(workspaceId, {
-    enabled: can.viewUsers(),
+    enabled: !!workspaceId && can.viewUsers(),
   });
 
   const { data: properties = [] } = useProperties(workspaceId, {
@@ -497,27 +497,23 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
               ))}
             </SelectContent>
           </Select>
-          {!workspaceUsersError && can.viewUsers() && (
-            <Select value={filterAgent} onValueChange={setFilterAgent}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Assigned to" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Agents</SelectItem>
-                {/* Show all workspace users */}
-                {workspaceUsers.map((workspaceUser) => (
-                  <SelectItem
-                    key={workspaceUser.user.id}
-                    value={workspaceUser.user.id}
-                  >
-                    {workspaceUser.user.name ||
-                      workspaceUser.user.email ||
-                      "Unknown"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          {!workspaceUsersError &&
+            can.viewUsers() &&
+            workspaceUsers.length > 0 && (
+              <Select value={filterAgent} onValueChange={setFilterAgent}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Assigned to" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Agents</SelectItem>
+                  {workspaceUsers.map((user) => (
+                    <SelectItem key={user.user.id} value={user.user.id}>
+                      {user.user.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           <div className="flex items-center space-x-2 text-sm text-gray-600">
             <span>Total Leads:</span>
             <Badge variant="secondary">{filteredLeads.length}</Badge>

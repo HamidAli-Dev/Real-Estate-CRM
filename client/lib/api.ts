@@ -235,16 +235,34 @@ export interface WorkspaceUserResponseType {
 export const getWorkspaceUsersQueryFn = async (
   workspaceId: string
 ): Promise<WorkspaceUserResponseType[]> => {
-  const response = await API.get(`/workspace/${workspaceId}/users`);
+  try {
+    const response = await API.get(`/workspace/${workspaceId}/users`);
 
-  // Since axios interceptor returns res.data, response is already the data object
-  const responseData = response as ApiEnvelope<WorkspaceUserResponseType[]>;
+    // Since axios interceptor returns res.data, response is already the data object
+    const responseData = response as ApiEnvelope<WorkspaceUserResponseType[]>;
 
-  // Check for the actual response structure: { message: string, data: any }
-  if (responseData && responseData.data) {
-    return responseData.data; // Return the actual users data
-  } else {
-    throw new Error(responseData?.message || "Failed to fetch workspace users");
+    // Check for the actual response structure: { message: string, data: any }
+    if (responseData && responseData.data) {
+      return responseData.data; // Return the actual users data
+    } else {
+      throw new Error(
+        responseData?.message || "Failed to fetch workspace users"
+      );
+    }
+  } catch (error: any) {
+    // Handle permission errors gracefully
+    if (
+      error?.data?.errorCode === "VALIDATION_ERROR" &&
+      error?.data?.message?.includes("Required permission")
+    ) {
+      console.log(
+        "Permission denied for VIEW_USERS in getWorkspaceUsersQueryFn"
+      );
+      // Return empty array instead of throwing error when permission is denied
+      return [];
+    }
+    console.error("❌ Error fetching workspace users:", error);
+    throw error; // Re-throw other errors
   }
 };
 

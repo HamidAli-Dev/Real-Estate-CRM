@@ -25,6 +25,7 @@ import { getWorkspaceUsersQueryFn, getWorkspaceRolesQueryFn } from "@/lib/api";
 import EditWorkspaceDialog from "./EditWorkspaceDialog";
 import DeleteWorkspaceDialog from "./DeleteWorkspaceDialog";
 import { usePermission } from "@/hooks/usePermission";
+import PermissionBasedRouteProtection from "../PermissionBasedRouteProtection";
 
 // Helper function to filter out Owner role
 const filterOutOwnerRole = (role: {
@@ -49,7 +50,7 @@ const WorkspaceSettings = () => {
   const { data: usersData } = useQuery({
     queryKey: ["workspaceUsers", currentWorkspace?.workspace.id],
     queryFn: () => getWorkspaceUsersQueryFn(currentWorkspace!.workspace.id),
-    enabled: !!currentWorkspace?.workspace.id,
+    enabled: !!currentWorkspace?.workspace.id && can.viewUsers(),
   });
 
   // Get workspace roles for statistics
@@ -86,6 +87,11 @@ const WorkspaceSettings = () => {
 
   return (
     <div className="space-y-6">
+      <PermissionBasedRouteProtection
+        permission="VIEW_SETTINGS"
+        redirectTo="/dashboard/user-dashboard"
+        loadingMessage="Checking permissions..."
+      />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -22,6 +22,7 @@ import {
 import PropertyForm from "@/app/(protechted)/_components/property/PropertyForm";
 import PropertiesList from "../../_components/property/PropertiesList";
 import { usePermission } from "@/hooks/usePermission";
+import PermissionBasedRouteProtection from "../PermissionBasedRouteProtection";
 
 const Property = () => {
   const { currentWorkspace } = useWorkspaceContext();
@@ -102,6 +103,11 @@ const Property = () => {
 
   return (
     <div className="">
+      <PermissionBasedRouteProtection
+        permission="VIEW_PROPERTIES"
+        redirectTo="/dashboard/user-dashboard"
+        loadingMessage="Checking permissions..."
+      />
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
