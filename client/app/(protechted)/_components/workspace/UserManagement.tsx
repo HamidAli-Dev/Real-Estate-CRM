@@ -75,6 +75,15 @@ import { UserInvitationModal } from "@/components/forms/UserInvitationModal";
 import { RoleModal } from "@/components/forms/RoleCreationModal";
 import { Input } from "@/components/ui/input";
 
+// Helper function to filter out Owner role
+const filterOutOwnerRole = (role: {
+  id: string;
+  name: string;
+  isSystem: boolean;
+}) => {
+  return !(role.isSystem && role.name === "Owner") && role.name !== "Owner";
+};
+
 const updateUserRoleSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email").min(1, "Email is required"),
@@ -138,7 +147,7 @@ const UserManagement = () => {
   // Extract data
   const workspaceUsers = usersData || [];
 
-  const roles = rolesData || [];
+  const roles = (rolesData || []).filter(filterOutOwnerRole);
 
   // Clear queries when workspace changes to prevent cross-workspace data
   useEffect(() => {
@@ -476,12 +485,6 @@ const UserManagement = () => {
             <div className="text-sm text-gray-500">
               {
                 roles.filter(
-                  (r: getWorkspaceRolesQueryResponseType) => r.isSystem
-                ).length
-              }{" "}
-              system,{" "}
-              {
-                roles.filter(
                   (r: getWorkspaceRolesQueryResponseType) => !r.isSystem
                 ).length
               }{" "}
@@ -641,18 +644,21 @@ const UserManagement = () => {
                             variant="outline"
                             size="sm"
                             onClick={() => handleEditRole(role)}
+                            disabled={role.name !== "Owner"}
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
                         )}
-                        {can.editUserRoles() && !role.isSystem && (
+                        {role.name === "Owner" && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="text-red-600 hover:text-red-700"
-                                disabled={isDeletingRole}
+                                disabled={
+                                  isDeletingRole || role.name === "Owner"
+                                }
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>

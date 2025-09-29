@@ -70,6 +70,14 @@ interface Permissions {
   [group: string]: string[];
 }
 
+const filterOutOwnerRole = (role: {
+  id: string;
+  name: string;
+  isSystem: boolean;
+}) => {
+  return !(role.isSystem && role.name === "Owner") && role.name !== "Owner";
+};
+
 export const AssignPermissionsModal: React.FC<AssignPermissionsModalProps> = ({
   children,
   onSuccess,
@@ -223,7 +231,7 @@ export const AssignPermissionsModal: React.FC<AssignPermissionsModalProps> = ({
                           Loading roles...
                         </SelectItem>
                       ) : (
-                        roles.map((role) => (
+                        roles.filter(filterOutOwnerRole).map((role) => (
                           <SelectItem key={role.id} value={role.id}>
                             <div className="flex items-center gap-2">
                               {role.name}

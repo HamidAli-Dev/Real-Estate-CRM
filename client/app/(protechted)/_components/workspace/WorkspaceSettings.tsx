@@ -21,9 +21,19 @@ import { Separator } from "@/components/ui/separator";
 
 import { useWorkspaceContext } from "@/context/workspace-provider";
 import { useAuthContext } from "@/context/auth-provider";
-import { getWorkspaceUsersQueryFn } from "@/lib/api";
+import { getWorkspaceUsersQueryFn, getWorkspaceRolesQueryFn } from "@/lib/api";
 import EditWorkspaceDialog from "./EditWorkspaceDialog";
 import DeleteWorkspaceDialog from "./DeleteWorkspaceDialog";
+import { usePermission } from "@/hooks/usePermission";
+
+// Helper function to filter out Owner role
+const filterOutOwnerRole = (role: {
+  id: string;
+  name: string;
+  isSystem: boolean;
+}) => {
+  return !(role.isSystem && role.name === "Owner") && role.name !== "Owner";
+};
 
 const WorkspaceSettings = () => {
   const searchParams = useSearchParams();
@@ -33,6 +43,7 @@ const WorkspaceSettings = () => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const { currentWorkspace } = useWorkspaceContext();
   const { user } = useAuthContext();
+  const { can } = usePermission();
 
   // Get workspace users for statistics
   const { data: usersData } = useQuery({
@@ -41,12 +52,19 @@ const WorkspaceSettings = () => {
     enabled: !!currentWorkspace?.workspace.id,
   });
 
+  // Get workspace roles for statistics
+  const { data: rolesData } = useQuery({
+    queryKey: ["workspaceRoles", currentWorkspace?.workspace.id],
+    queryFn: () => getWorkspaceRolesQueryFn(currentWorkspace!.workspace.id),
+    enabled: !!currentWorkspace?.workspace.id,
+  });
+
   const workspaceUsers = usersData || [];
+  const roles = (rolesData || []).filter(filterOutOwnerRole);
 
   console.log("workspaceUsers", workspaceUsers);
 
   const isOwner = user?.user.role?.name === "Owner";
-  const canEdit = isOwner;
 
   if (!currentWorkspace) {
     return (
@@ -132,7 +150,7 @@ const WorkspaceSettings = () => {
                   </p>
                 </div>
               </div>
-              {canEdit && (
+              {can.editSettings() && (
                 <Button
                   variant="outline"
                   onClick={() => setIsEditOpen(true)}
@@ -161,108 +179,96 @@ const WorkspaceSettings = () => {
                   </div>
                   <div className="text-sm text-gray-500">Total Users</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {
-                      workspaceUsers.filter(
-                        (u: {
-                          id: string;
-                          userId: string;
-                          workspaceId: string;
-                          roleId: string;
-                          role: {
-                            id: string;
-                            name: string;
-                            isSystem: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                            rolePermissions: {
+                {/* Dynamic role statistics - show up to 3 roles */}
+                {roles.slice(0, 3).map((role, index) => {
+                  // Define colors for different roles
+                  const colorClasses = [
+                    "text-green-600",
+                    "text-yellow-600",
+                    "text-purple-600",
+                  ];
+
+                  const colorClass = colorClasses[index] || "text-gray-600";
+
+                  return (
+                    <div key={role.id} className="text-center">
+                      <div className={`text-2xl font-bold ${colorClass}`}>
+                        {
+                          workspaceUsers.filter(
+                            (u: {
                               id: string;
+                              userId: string;
+                              workspaceId: string;
                               roleId: string;
-                              permissionId: string;
-                              permission: {
+                              role: {
                                 id: string;
                                 name: string;
-                                group: string;
+                                isSystem: boolean;
                                 createdAt: string;
                                 updatedAt: string;
-                              }[];
-                            };
-                          };
-                        }) => u.role.name === "Owner"
-                      ).length
-                    }
-                  </div>
-                  <div className="text-sm text-gray-500">Owners</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-600">
-                    {
-                      workspaceUsers.filter(
-                        (u: {
-                          id: string;
-                          userId: string;
-                          workspaceId: string;
-                          roleId: string;
-                          role: {
-                            id: string;
-                            name: string;
-                            isSystem: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                            rolePermissions: {
+                                rolePermissions: {
+                                  id: string;
+                                  roleId: string;
+                                  permissionId: string;
+                                  permission: {
+                                    id: string;
+                                    name: string;
+                                    group: string;
+                                    createdAt: string;
+                                    updatedAt: string;
+                                  }[];
+                                };
+                              };
+                            }) => u.role.name === role.name
+                          ).length
+                        }
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {role.name}s{role.isSystem && " (System)"}
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* If there are more than 3 roles, show a summary of the remaining roles */}
+                {roles.length > 3 && (
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-600">
+                      {roles.slice(3).reduce((count, role) => {
+                        return (
+                          count +
+                          workspaceUsers.filter(
+                            (u: {
                               id: string;
+                              userId: string;
+                              workspaceId: string;
                               roleId: string;
-                              permissionId: string;
-                              permission: {
+                              role: {
                                 id: string;
                                 name: string;
-                                group: string;
+                                isSystem: boolean;
                                 createdAt: string;
                                 updatedAt: string;
-                              }[];
-                            };
-                          };
-                        }) => u.role.name === "Manager"
-                      ).length
-                    }
+                                rolePermissions: {
+                                  id: string;
+                                  roleId: string;
+                                  permissionId: string;
+                                  permission: {
+                                    id: string;
+                                    name: string;
+                                    group: string;
+                                    createdAt: string;
+                                    updatedAt: string;
+                                  }[];
+                                };
+                              };
+                            }) => u.role.name === role.name
+                          ).length
+                        );
+                      }, 0)}
+                    </div>
+                    <div className="text-sm text-gray-500">Other Roles</div>
                   </div>
-                  <div className="text-sm text-gray-500">Managers</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {
-                      workspaceUsers.filter(
-                        (u: {
-                          id: string;
-                          userId: string;
-                          workspaceId: string;
-                          roleId: string;
-                          role: {
-                            id: string;
-                            name: string;
-                            isSystem: boolean;
-                            createdAt: string;
-                            updatedAt: string;
-                            rolePermissions: {
-                              id: string;
-                              roleId: string;
-                              permissionId: string;
-                              permission: {
-                                id: string;
-                                name: string;
-                                group: string;
-                                createdAt: string;
-                                updatedAt: string;
-                              }[];
-                            };
-                          };
-                        }) => u.role.name === "Agent"
-                      ).length
-                    }
-                  </div>
-                  <div className="text-sm text-gray-500">Agents</div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -289,7 +295,7 @@ const WorkspaceSettings = () => {
                     Workspace Settings
                   </span>
                   <Badge variant="outline" className="text-xs">
-                    {canEdit ? "Full Access" : "View Only"}
+                    {can.viewSettings() ? "Full Access" : "View Only"}
                   </Badge>
                 </div>
                 <Separator />
@@ -315,24 +321,28 @@ const WorkspaceSettings = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
-              <Link
-                href={`/dashboard/user-management?workspaceId=${workspaceId}`}
-                prefetch={true}
-              >
-                <Button variant="outline" className="w-full justify-start">
-                  <Users className="w-4 h-4 mr-2" />
-                  Manage Users
-                </Button>
-              </Link>
-              <Link
-                href={`/dashboard/properties?workspaceId=${workspaceId}`}
-                prefetch={true}
-              >
-                <Button variant="outline" className="w-full justify-start">
-                  <Building2 className="w-4 h-4 mr-2" />
-                  View Properties
-                </Button>
-              </Link>
+              {can.viewUsers() && (
+                <Link
+                  href={`/dashboard/user-management?workspaceId=${workspaceId}`}
+                  prefetch={true}
+                >
+                  <Button variant="outline" className="w-full justify-start">
+                    <Users className="w-4 h-4 mr-2" />
+                    Manage Users
+                  </Button>
+                </Link>
+              )}
+              {can.viewProperties() && (
+                <Link
+                  href={`/dashboard/properties?workspaceId=${workspaceId}`}
+                  prefetch={true}
+                >
+                  <Button variant="outline" className="w-full justify-start">
+                    <Building2 className="w-4 h-4 mr-2" />
+                    View Properties
+                  </Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
 

@@ -57,11 +57,22 @@ type InviteUserFormData = z.infer<typeof inviteUserSchema>;
 interface UserInvitationModalProps {
   workspaceId: string;
   onUserInvited?: () => void;
+  trigger?: React.ReactNode;
 }
+
+// Helper function to filter out Owner role
+const filterOutOwnerRole = (role: {
+  id: string;
+  name: string;
+  isSystem: boolean;
+}) => {
+  return !(role.isSystem && role.name === "Owner") && role.name !== "Owner";
+};
 
 export const UserInvitationModal = ({
   workspaceId,
   onUserInvited,
+  trigger,
 }: UserInvitationModalProps) => {
   const [open, setOpen] = useState(false);
   const { can } = usePermission();
@@ -116,10 +127,14 @@ export const UserInvitationModal = ({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-2">
-          <UserPlus className="h-4 w-4" />
-          Invite User
-        </Button>
+        {trigger ? (
+          trigger
+        ) : (
+          <Button size="sm" className="gap-2">
+            <UserPlus className="h-4 w-4" />
+            Invite User
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
@@ -184,8 +199,9 @@ export const UserInvitationModal = ({
                           Loading roles...
                         </SelectItem>
                       ) : (
-                        rolesData?.map(
-                          (role: getWorkspaceRolesQueryResponseType) => (
+                        rolesData
+                          ?.filter(filterOutOwnerRole)
+                          .map((role: getWorkspaceRolesQueryResponseType) => (
                             <SelectItem key={role.id} value={role.id}>
                               <div className="flex items-center gap-2">
                                 <span>{role.name}</span>
@@ -199,8 +215,7 @@ export const UserInvitationModal = ({
                                 )}
                               </div>
                             </SelectItem>
-                          )
-                        )
+                          ))
                       )}
                     </SelectContent>
                   </Select>
