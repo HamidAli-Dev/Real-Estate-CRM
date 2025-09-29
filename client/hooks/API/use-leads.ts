@@ -46,7 +46,13 @@ export const useLeads = (
 
         console.warn("⚠️ Unexpected leads response format:", response.data);
         return [];
-      } catch (error) {
+      } catch (error: any) {
+        if (
+          error?.data?.errorCode === "VALIDATION_ERROR" &&
+          error?.data?.message?.includes("Required permission")
+        ) {
+          throw error;
+        }
         console.error("❌ Error fetching leads:", error);
         return [];
       }

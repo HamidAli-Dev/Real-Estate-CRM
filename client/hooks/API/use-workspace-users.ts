@@ -15,7 +15,10 @@ export interface WorkspaceUser {
   }>;
 }
 
-export const useWorkspaceUsers = (workspaceId: string) => {
+export const useWorkspaceUsers = (
+  workspaceId: string,
+  options?: { enabled?: boolean }
+) => {
   return useQuery({
     queryKey: ["workspace-users", workspaceId],
     queryFn: async (): Promise<WorkspaceUser[]> => {
@@ -41,12 +44,18 @@ export const useWorkspaceUsers = (workspaceId: string) => {
           response.data
         );
         return [];
-      } catch (error) {
+      } catch (error: any) {
+        if (
+          error?.data?.errorCode === "VALIDATION_ERROR" &&
+          error?.data?.message?.includes("Required permission")
+        ) {
+          throw error;
+        }
         console.error("❌ Error fetching workspace users:", error);
         return [];
       }
     },
-    enabled: !!workspaceId,
+    enabled: !!workspaceId && (options?.enabled ?? true),
     retry: 2,
     retryDelay: 1000,
   });

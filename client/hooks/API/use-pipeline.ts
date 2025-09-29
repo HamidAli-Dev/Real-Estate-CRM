@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+
 import {
   PipelineStage,
   CreatePipelineStageData,
@@ -13,8 +15,6 @@ export const usePipelineStages = (workspaceId: string) => {
       try {
         const response = await API.get(`/pipeline/${workspaceId}/stages`);
 
-        // Since axios interceptor returns res.data, response is the actual data
-        // API response structure: { success: true, data: [...] }
         if (
           response &&
           typeof response === "object" &&
@@ -31,9 +31,16 @@ export const usePipelineStages = (workspaceId: string) => {
           response
         );
         return [];
-      } catch (error) {
-        console.error("❌ Error fetching pipeline stages:", error);
-        return [];
+      } catch (error: any) {
+        if (
+          error?.data?.errorCode === "VALIDATION_ERROR" &&
+          error?.data?.message?.includes("VIEW_PIPELINE_STAGES")
+        ) {
+          console.log("Permission denied for VIEW_PIPELINE_STAGES");
+        } else {
+          toast.error("Failed to fetch pipeline stages", error.data?.message);
+        }
+        throw error;
       }
     },
     enabled: !!workspaceId,

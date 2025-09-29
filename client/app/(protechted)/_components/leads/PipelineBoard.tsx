@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,12 +50,31 @@ import {
   DragOverlay,
   closestCenter,
 } from "@dnd-kit/core";
+import { usePermission } from "@/hooks/usePermission";
+
+interface ApiError {
+  message?: string;
+  errorCode?: string;
+  data?: {
+    message?: string;
+    errorCode?: string;
+  };
+  status?: number;
+  response?: {
+    data?: {
+      message?: string;
+      errorCode?: string;
+    };
+    status?: number;
+  };
+}
 
 export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
   workspaceId,
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { can } = usePermission();
 
   const [isCreateStageOpen, setIsCreateStageOpen] = useState(false);
   const [isCreateLeadOpen, setIsCreateLeadOpen] = useState(false);
@@ -93,10 +112,25 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
   const [isLeadEditOpen, setIsLeadEditOpen] = useState(false);
 
   const { user } = useAuthContext();
-  const { data: stages = [], isLoading: stagesLoading } =
-    usePipelineStages(workspaceId);
-  const { data: workspaceUsers = [] } = useWorkspaceUsers(workspaceId);
-  const { data: properties = [] } = useProperties(workspaceId);
+
+  const {
+    data: stages = [],
+    isLoading: stagesLoading,
+    isError: stagesError,
+    error,
+  } = usePipelineStages(workspaceId);
+
+  const {
+    data: workspaceUsers = [],
+    isError: workspaceUsersError,
+    error: workspaceUsersFetchError,
+  } = useWorkspaceUsers(workspaceId, {
+    enabled: can.viewUsers(),
+  });
+
+  const { data: properties = [] } = useProperties(workspaceId, {
+    enabled: can.viewProperties(),
+  });
 
   // Debounce search to reduce requests
   const [debouncedSearch, setDebouncedSearch] = useState(
@@ -172,14 +206,6 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
   // Leads already filtered server-side
   const filteredLeads = allLeads;
 
-  // Group leads by stage
-  const leadsByStage = stages.reduce((acc, stage) => {
-    acc[stage.id] = filteredLeads.filter(
-      (lead) => lead.pipelineStageId === stage.id
-    );
-    return acc;
-  }, {} as Record<string, Lead[]>);
-
   const handleLeadClick = (lead: Lead) => {
     setSelectedLead(lead);
     setIsLeadEditOpen(true);
@@ -187,15 +213,20 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
 
   const handleAddStage = async () => {
     if (newStageData.name.trim()) {
-      await createStage.mutateAsync({
-        workspaceId,
-        data: {
-          name: newStageData.name.trim(),
-          color: newStageData.color || undefined,
-        },
-      });
-      setIsCreateStageOpen(false);
-      setNewStageData({ name: "", color: "" });
+      try {
+        await createStage.mutateAsync({
+          workspaceId,
+          data: {
+            name: newStageData.name.trim(),
+            color: newStageData.color || undefined,
+          },
+        });
+        setIsCreateStageOpen(false);
+        setNewStageData({ name: "", color: "" });
+      } catch (error: unknown) {
+        console.error("Error creating stage:", error);
+        // TODO: Show error toast
+      }
     }
   };
 
@@ -239,7 +270,7 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
           budget: undefined,
           tags: [],
         });
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error creating lead:", error);
         // TODO: Show error toast
       }
@@ -346,6 +377,11 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
     // The stage update is handled by the StageColumn component
   };
 
+  const isPermissionError =
+    stagesError &&
+    (error as ApiError)?.data?.errorCode === "VALIDATION_ERROR" &&
+    (error as ApiError)?.data?.message?.includes("VIEW_PIPELINE_STAGES");
+
   if (stagesLoading || leadsLoading) {
     return (
       <div className="p-6">
@@ -366,6 +402,43 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
     );
   }
 
+  // Show permission denied placeholder if user doesn't have required permissions
+  if (isPermissionError || !can.viewPipelineStages()) {
+    // Extract the required permission from the error message or use default
+    let requiredPermission = "VIEW_PIPELINE_STAGES";
+
+    if (stagesError && (error as ApiError)?.data?.message) {
+      const match = (error as ApiError)?.data?.message?.match(
+        /Required permission: ([A-Z_]+)/
+      );
+      if (match) requiredPermission = match[1];
+    }
+
+    return (
+      <div className="flex items-center justify-center h-full p-6">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+            <Lock className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Access Restricted
+          </h3>
+          <p className="text-gray-600 mb-4">
+            You don&apos;t have permission to view the lead pipeline. The
+            following permission is required:{" "}
+            <strong>{requiredPermission}</strong>
+            <br />
+            <br />
+            Please contact your administrator to request access.
+          </p>
+          <Button onClick={() => router.push("/dashboard")}>
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-gray-50 overflow-hidden">
       {/* Fixed Header - Never scrolls horizontally */}
@@ -378,21 +451,25 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
             </p>
           </div>
           <div className="flex items-center space-x-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsCreateStageOpen(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Stage
-            </Button>
-            <Button
-              onClick={() => setIsCreateLeadOpen(true)}
-              disabled={stages.length === 0}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Lead
-            </Button>
+            {can.createPipelineStages() && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCreateStageOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Stage
+              </Button>
+            )}
+            {can.createLeads() && (
+              <Button
+                onClick={() => setIsCreateLeadOpen(true)}
+                disabled={stages.length === 0}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Lead
+              </Button>
+            )}
           </div>
         </div>
 
@@ -420,25 +497,27 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
               ))}
             </SelectContent>
           </Select>
-          <Select value={filterAgent} onValueChange={setFilterAgent}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Assigned to" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Agents</SelectItem>
-              {/* Show all workspace users */}
-              {workspaceUsers.map((workspaceUser) => (
-                <SelectItem
-                  key={workspaceUser.user.id}
-                  value={workspaceUser.user.id}
-                >
-                  {workspaceUser.user.name ||
-                    workspaceUser.user.email ||
-                    "Unknown"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!workspaceUsersError && can.viewUsers() && (
+            <Select value={filterAgent} onValueChange={setFilterAgent}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Assigned to" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Agents</SelectItem>
+                {/* Show all workspace users */}
+                {workspaceUsers.map((workspaceUser) => (
+                  <SelectItem
+                    key={workspaceUser.user.id}
+                    value={workspaceUser.user.id}
+                  >
+                    {workspaceUser.user.name ||
+                      workspaceUser.user.email ||
+                      "Unknown"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <div className="flex items-center space-x-2 text-sm text-gray-600">
             <span>Total Leads:</span>
             <Badge variant="secondary">{filteredLeads.length}</Badge>
@@ -460,10 +539,12 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
               <p className="text-gray-600 mb-4">
                 Create your first pipeline stage to start organizing your leads
               </p>
-              <Button onClick={() => setIsCreateStageOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create First Stage
-              </Button>
+              {can.createPipelineStages() && (
+                <Button onClick={() => setIsCreateStageOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create First Stage
+                </Button>
+              )}
             </div>
           </div>
         ) : (

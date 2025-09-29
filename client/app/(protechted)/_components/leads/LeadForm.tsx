@@ -17,6 +17,7 @@ import { CreateLeadData, UpdateLeadData } from "@/types/api.types";
 import { PipelineStage } from "@/types/api.types";
 import { Property } from "@/hooks/API/use-properties";
 import { WorkspaceUser } from "@/hooks/API/use-workspace-users";
+import { usePermission } from "@/hooks/usePermission";
 
 interface LeadFormProps {
   // Form data
@@ -80,6 +81,7 @@ export const LeadForm: React.FC<LeadFormProps> = ({
     onFormDataChange(newData);
   };
 
+  const { can } = usePermission();
   // Filter out the current user from agent options (they can't assign to themselves)
   const availableAgents = workspaceUsers.filter(
     (user) => user.user.id !== currentUserId
@@ -399,26 +401,28 @@ export const LeadForm: React.FC<LeadFormProps> = ({
         >
           Cancel
         </Button>
-        <Button
-          onClick={() => {
-            const submitData = forceStageId
-              ? { ...formData, pipelineStageId: forceStageId }
-              : formData;
-            onSubmit(submitData);
-          }}
-          disabled={!isFormValid() || isLoading}
-          type="button"
-          size="sm"
-          className="h-8 px-3"
-        >
-          {isLoading
-            ? mode === "create"
-              ? "Creating..."
-              : "Saving..."
-            : mode === "create"
-            ? "Create Lead"
-            : "Save Changes"}
-        </Button>
+        {can.createLeads() && (
+          <Button
+            onClick={() => {
+              const submitData = forceStageId
+                ? { ...formData, pipelineStageId: forceStageId }
+                : formData;
+              onSubmit(submitData);
+            }}
+            disabled={!isFormValid() || isLoading}
+            type="button"
+            size="sm"
+            className="h-8 px-3"
+          >
+            {isLoading
+              ? mode === "create"
+                ? "Creating..."
+                : "Saving..."
+              : mode === "create"
+              ? "Create Lead"
+              : "Save Changes"}
+          </Button>
+        )}
       </div>
     </div>
   );

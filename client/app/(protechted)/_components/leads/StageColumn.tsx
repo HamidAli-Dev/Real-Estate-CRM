@@ -39,6 +39,7 @@ import { useAuthContext } from "@/context/auth-provider";
 import { LeadForm } from "./LeadForm";
 import { WorkspaceUser } from "@/hooks/API/use-workspace-users";
 import { Property } from "@/hooks/API/use-properties";
+import { usePermission } from "@/hooks/usePermission";
 
 interface StageColumnProps {
   stage: PipelineStage;
@@ -71,6 +72,7 @@ export const StageColumn: React.FC<StageColumnProps> = ({
   properties,
 }) => {
   const { user } = useAuthContext();
+  const { can } = usePermission();
 
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDeleteWarningDialog, setShowDeleteWarningDialog] = useState(false);
@@ -289,22 +291,28 @@ export const StageColumn: React.FC<StageColumnProps> = ({
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
+                {(can.editPipelineStages() || can.deletePipelineStages()) && (
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                )}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleStartEdit}>
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  Edit Stage
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleDeleteStageClick}
-                  className="text-red-600"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Stage
-                </DropdownMenuItem>
+                {can.editPipelineStages() && (
+                  <DropdownMenuItem onClick={handleStartEdit}>
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    Edit Stage
+                  </DropdownMenuItem>
+                )}
+                {can.deletePipelineStages() && (
+                  <DropdownMenuItem
+                    onClick={handleDeleteStageClick}
+                    className="text-red-600"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Stage
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

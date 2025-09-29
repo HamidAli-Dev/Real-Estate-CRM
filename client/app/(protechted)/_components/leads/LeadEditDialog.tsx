@@ -19,6 +19,7 @@ import { usePipelineStages } from "@/hooks/API/use-pipeline";
 import { useProperties } from "@/hooks/API/use-properties";
 import { useWorkspaceUsers } from "@/hooks/API/use-workspace-users";
 import { useAuthContext } from "@/context/auth-provider";
+import { usePermission } from "@/hooks/usePermission";
 
 interface LeadEditDialogProps {
   lead: Lead | null;
@@ -35,6 +36,7 @@ export const LeadEditDialog: React.FC<LeadEditDialogProps> = ({
 }) => {
   const { data: workspaceUsers = [] } = useWorkspaceUsers(workspaceId);
   const { user } = useAuthContext();
+  const { can } = usePermission();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [formData, setFormData] = useState<UpdateLeadData>({});
@@ -150,14 +152,16 @@ export const LeadEditDialog: React.FC<LeadEditDialogProps> = ({
                 >
                   {currentLead.priority || "Warm"}
                 </Badge>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                {can.deleteLeads() && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </DialogHeader>

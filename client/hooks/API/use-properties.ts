@@ -37,7 +37,10 @@ export interface Property {
   updatedAt: string;
 }
 
-export const useProperties = (workspaceId: string) => {
+export const useProperties = (
+  workspaceId: string,
+  options?: { enabled?: boolean }
+) => {
   return useQuery({
     queryKey: ["properties", workspaceId],
     queryFn: async (): Promise<Property[]> => {
@@ -46,12 +49,10 @@ export const useProperties = (workspaceId: string) => {
           `/properties?workspaceId=${workspaceId}`
         );
 
-        // Check if response.data is directly an array (properties)
         if (response.data && Array.isArray(response.data)) {
           return response.data;
         }
 
-        // Check if response.data.data is an array (nested structure)
         if (
           response.data &&
           response.data.data &&
@@ -70,7 +71,7 @@ export const useProperties = (workspaceId: string) => {
         return [];
       }
     },
-    enabled: !!workspaceId,
+    enabled: !!workspaceId && (options?.enabled ?? true),
     retry: 2,
     retryDelay: 1000,
   });
