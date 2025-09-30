@@ -14,7 +14,6 @@ export const useDashboardAccess = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Wait for all required data to be loaded
     if (!user || !currentWorkspace || permissionsLoading) {
       return;
     }
@@ -23,14 +22,12 @@ export const useDashboardAccess = () => {
 
     const currentPath = window.location.pathname;
 
-    // Redirect logic based on role and current path
     if (userIsOwner) {
-      if (currentPath.includes("/user-dashboard")) {
+      if (currentPath === "/dashboard/user-dashboard") {
         router.replace("/dashboard");
         return;
       }
     } else {
-      // Non-owner should not access main dashboard
       if (currentPath === "/dashboard") {
         router.replace("/dashboard/user-dashboard");
         return;

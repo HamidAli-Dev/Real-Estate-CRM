@@ -22,6 +22,8 @@ const PermissionBasedRouteProtection = ({
   useEffect(() => {
     if (isLoading) return;
 
+    if (!can) return;
+
     let hasPermission = false;
 
     switch (permission) {
@@ -104,12 +106,6 @@ const PermissionBasedRouteProtection = ({
       </div>
     );
   }
-
-  // let hasPermission = false;
-
-  // if (!hasPermission) {
-  //   return null;
-  // }
 
   return null;
 };

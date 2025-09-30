@@ -139,12 +139,6 @@ const UserManagement = () => {
     gcTime: 0, // Don't cache the data
   });
 
-  // Get permissions
-  // const { data: permissionsData } = useQuery({
-  //   queryKey: ["permissions"],
-  //   queryFn: () => getPermissionsQueryFn(),
-  // });
-
   // Extract data
   const workspaceUsers = usersData || [];
 
