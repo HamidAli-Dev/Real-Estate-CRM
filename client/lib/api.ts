@@ -249,11 +249,15 @@ export const getWorkspaceUsersQueryFn = async (
         responseData?.message || "Failed to fetch workspace users"
       );
     }
-  } catch (error: any) {
+  } catch (error) {
+    const errorResponse = error as {
+      response?: { data?: { errorCode: string; message: string } };
+    };
+
     // Handle permission errors gracefully
     if (
-      error?.data?.errorCode === "VALIDATION_ERROR" &&
-      error?.data?.message?.includes("Required permission")
+      errorResponse?.response?.data?.errorCode === "VALIDATION_ERROR" &&
+      errorResponse?.response?.data?.message.includes("Required permission")
     ) {
       console.log(
         "Permission denied for VIEW_USERS in getWorkspaceUsersQueryFn"

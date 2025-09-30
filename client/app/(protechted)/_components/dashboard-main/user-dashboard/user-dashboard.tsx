@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDashboardAccess } from "@/hooks/useDashboardAccess";
 import TopBar from "../../TopBar";
+import RecentActivity from "./recent-activity";
 
 const UserDashboard = () => {
   const { user, isLoading: isAuthLoading } = useAuthContext();
@@ -45,7 +46,7 @@ const UserDashboard = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* User Profile Card */}
         <div className="lg:col-span-1">
           <Card>
@@ -96,8 +97,13 @@ const UserDashboard = () => {
           </Card>
         </div>
 
-        {/* Permissions Card */}
+        {/* Recent Activity - Two Column Layout */}
         <div className="lg:col-span-2">
+          <RecentActivity />
+        </div>
+
+        {/* Permissions and Workspace Info */}
+        <div className="lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -107,14 +113,14 @@ const UserDashboard = () => {
             </CardHeader>
             <CardContent>
               {permissions.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-2">
                   {permissions.map((permission) => (
                     <Badge
                       key={permission.id}
                       variant="secondary"
-                      className="py-2 px-3 justify-between"
+                      className="w-full py-2 px-3 justify-between"
                     >
-                      <span className="font-medium">
+                      <span className="font-medium text-xs">
                         {permission.permission.name}
                       </span>
                       {permission.permission.group && (
@@ -126,7 +132,7 @@ const UserDashboard = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   No specific permissions assigned. Contact your workspace
                   administrator for more information.
                 </p>
@@ -139,36 +145,36 @@ const UserDashboard = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building className="h-5 w-5" />
-                Workspace Information
+                Workspace Info
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
                 <div>
-                  <h4 className="font-semibold">Workspace Name</h4>
-                  <p className="text-muted-foreground">
+                  <h4 className="font-semibold text-sm">Workspace</h4>
+                  <p className="text-muted-foreground text-sm">
                     {workspaceData.workspace.name}
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-semibold">Your Role</h4>
-                  <p className="text-muted-foreground">
+                  <h4 className="font-semibold text-sm">Your Role</h4>
+                  <p className="text-muted-foreground text-sm">
                     {workspaceData.role.name}
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-semibold">Member Since</h4>
-                  <p className="text-muted-foreground">
+                  <h4 className="font-semibold text-sm">Member Since</h4>
+                  <p className="text-muted-foreground text-sm">
                     {format(
                       new Date(workspaceData.role.createdAt),
-                      "MMMM d, yyyy"
+                      "MMM d, yyyy"
                     )}
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-semibold">Total Permissions</h4>
-                  <p className="text-muted-foreground">
-                    {permissions.length} permissions
+                  <h4 className="font-semibold text-sm">Permissions</h4>
+                  <p className="text-muted-foreground text-sm">
+                    {permissions.length} assigned
                   </p>
                 </div>
               </div>
