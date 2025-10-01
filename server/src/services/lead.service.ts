@@ -747,10 +747,23 @@ export const deleteLeadService = async ({
     throw new BadRequestException("Lead not found");
   }
 
-  // Delete lead (cascade will handle related records)
-  await db.lead.delete({
-    where: {
-      id: leadId,
-    },
+  await db.$transaction(async (tx) => {
+    await tx.leadProperty.deleteMany({
+      where: {
+        leadId: leadId,
+      },
+    });
+
+    await tx.activity.deleteMany({
+      where: {
+        leadId: leadId,
+      },
+    });
+
+    await tx.lead.delete({
+      where: {
+        id: leadId,
+      },
+    });
   });
 };

@@ -60,6 +60,9 @@ export const LeadEditDialog: React.FC<LeadEditDialogProps> = ({
 
   useEffect(() => {
     if (currentLead && currentLead.id) {
+      const propertyIds =
+        currentLead.properties?.map((p) => p.property.id) || [];
+
       setFormData({
         name: currentLead.name,
         contactInfo: currentLead.contactInfo,
@@ -70,7 +73,8 @@ export const LeadEditDialog: React.FC<LeadEditDialogProps> = ({
         budget: currentLead.budget,
         tags: currentLead.tags || [],
         pipelineStageId: currentLead.pipelineStageId,
-        propertyIds: currentLead.properties?.map((p) => p.property.id) || [],
+        assignedToId: currentLead.assignedToId,
+        propertyIds: propertyIds,
       });
     }
   }, [currentLead]);

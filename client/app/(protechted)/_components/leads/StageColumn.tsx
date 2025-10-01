@@ -211,7 +211,7 @@ export const StageColumn: React.FC<StageColumnProps> = ({
           priority: formData.priority || "Warm",
           budget: formData.budget,
           tags: formData.tags || [],
-          propertyIds: [], // Send empty array for propertyIds
+          propertyIds: formData.propertyIds || [],
         } as CreateLeadData;
 
         await createLead.mutateAsync({

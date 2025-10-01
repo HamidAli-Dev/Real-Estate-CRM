@@ -1,8 +1,6 @@
 import { Request, Response } from "express";
 
 import { asyncHandler } from "../utils/asyncHandler";
-import { AppError } from "../utils/AppError";
-import { db } from "../utils/db";
 import {
   createLeadSchema,
   updateLeadSchema,
@@ -16,6 +14,7 @@ import {
   updateLeadPositionService,
   updateLeadService,
   updateLeadStageService,
+  deleteLeadService,
 } from "../services/lead.service";
 
 // Create a new lead
@@ -152,6 +151,11 @@ export const updateLeadPositionController = asyncHandler(
 export const deleteLeadController = asyncHandler(
   async (req: Request, res: Response) => {
     const { workspaceId, leadId } = req.params;
+
+    await deleteLeadService({
+      workspaceId,
+      leadId,
+    });
 
     return res.status(HTTPSTATUS.OK).json({
       success: true,

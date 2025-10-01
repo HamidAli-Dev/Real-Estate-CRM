@@ -256,7 +256,7 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
             priority: formData.priority || "Warm",
             budget: formData.budget,
             tags: formData.tags || [],
-            propertyIds: [], // Send empty array for propertyIds
+            propertyIds: formData.propertyIds || [],
           } as CreateLeadData,
         });
         setIsCreateLeadOpen(false);

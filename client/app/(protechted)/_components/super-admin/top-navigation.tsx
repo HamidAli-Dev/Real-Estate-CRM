@@ -79,7 +79,7 @@ const TopNavigation = () => {
                   <div className="flex flex-col gap-1">
                     <p className="text-sm font-medium">New workspace created</p>
                     <p className="text-xs text-muted-foreground">
-                      "ABC Realty" just signed up
+                      &quot;ABC Realty&quot; just signed up
                     </p>
                     <p className="text-xs text-muted-foreground">
                       2 minutes ago
@@ -90,7 +90,7 @@ const TopNavigation = () => {
                   <div className="flex flex-col gap-1">
                     <p className="text-sm font-medium">Payment received</p>
                     <p className="text-xs text-muted-foreground">
-                      $299 from "XYZ Properties"
+                      $299 from &quot;XYZ Properties&quot;
                     </p>
                     <p className="text-xs text-muted-foreground">1 hour ago</p>
                   </div>
