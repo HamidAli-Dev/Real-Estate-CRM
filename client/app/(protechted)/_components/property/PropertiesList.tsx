@@ -53,6 +53,9 @@ const PropertiesList = ({ onEditProperty }: PropertiesListProps) => {
       queryClient.invalidateQueries({
         queryKey: ["properties", currentWorkspace?.workspace.id],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["monthly-sales", currentWorkspace?.workspace.id],
+      });
     },
     onError: (error) => {
       console.error("❌ Property deletion failed:", error);

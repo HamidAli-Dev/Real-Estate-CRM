@@ -21,29 +21,77 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import TopBar from "../TopBar";
 import CreateWorkspaceDialog from "../workspace/CreateWorkspaceDialog";
 import AnalyticsOverview from "./AnalyticsOverview";
 import { useDashboardAccess } from "@/hooks/useDashboardAccess";
+import { useDashboardMetrics } from "@/hooks/API/use-dashboard-metrics";
+import { useTeamPerformance } from "@/hooks/API/use-team-performance";
+import { usePipelinePerformance } from "@/hooks/API/use-pipeline-performance";
+import Link from "next/link";
 
 const Main = () => {
   const { isLoading: isDashboardLoading } = useDashboardAccess();
 
-  const { userWorkspaces, isLoading } = useWorkspaceContext();
+  const { userWorkspaces, isLoading, currentWorkspace } = useWorkspaceContext();
   const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] =
     useState(false);
 
-  // Mock data for dashboard metrics
-  const dashboardMetrics = {
-    totalProperties: 247,
-    activeLeads: 1234,
-    monthlyRevenue: 89432,
-    teamMembers: 15,
-    propertiesChange: "+12%",
-    leadsChange: "+8%",
-    revenueChange: "+23%",
-    teamChange: "+2",
+  const {
+    data: dashboardMetrics,
+    isLoading: metricsLoading,
+    isError: metricsError,
+  } = useDashboardMetrics(currentWorkspace?.workspace.id || "");
+
+  const {
+    data: teamPerformance,
+    isLoading: teamPerformanceLoading,
+    isError: teamPerformanceError,
+  } = useTeamPerformance(currentWorkspace?.workspace.id || "");
+
+  const {
+    data: pipelinePerformance,
+    isLoading: pipelinePerformanceLoading,
+    isError: pipelinePerformanceError,
+  } = usePipelinePerformance(currentWorkspace?.workspace.id || "");
+
+  const fallbackMetrics = {
+    totalProperties: 0,
+    activeLeads: 0,
+    monthlyRevenue: 0,
+    teamMembers: 0,
+    propertiesChange: "+0%",
+    leadsChange: "+0%",
+    revenueChange: "+0%",
+    teamChange: "+0",
   };
+
+  const fallbackTeamPerformance = {
+    goalAchievementRate: 0,
+    topPerformer: {
+      name: "No one",
+      dealsCount: 0,
+    },
+    thisMonthDeals: 0,
+    totalTeamDeals: 0,
+    averageDealsPerMember: 0,
+  };
+
+  const fallbackPipelinePerformance = {
+    activeDeals: 0,
+    conversionRate: 0,
+    averageDealSize: 0,
+    salesCycle: 0,
+    activeDealsChange: "+0%",
+    conversionRateChange: "+0%",
+    averageDealSizeChange: "+0%",
+    salesCycleChange: "+0 days",
+  };
+
+  const metrics = dashboardMetrics || fallbackMetrics;
+  const teamMetrics = teamPerformance || fallbackTeamPerformance;
+  const pipelineMetrics = pipelinePerformance || fallbackPipelinePerformance;
 
   // Show create workspace dialog when user has no workspaces
   useEffect(() => {
@@ -174,13 +222,17 @@ const Main = () => {
                   <p className="text-sm font-medium text-purple-100 mb-1">
                     Total Properties
                   </p>
-                  <p className="text-3xl font-bold text-white">
-                    {dashboardMetrics.totalProperties.toLocaleString()}
-                  </p>
+                  {metricsLoading ? (
+                    <Skeleton className="h-8 w-20 bg-white/20 mb-2" />
+                  ) : (
+                    <p className="text-3xl font-bold text-white">
+                      {metrics.totalProperties.toLocaleString()}
+                    </p>
+                  )}
                   <div className="flex items-center mt-2">
                     <TrendingUp className="w-4 h-4 text-green-300 mr-1" />
                     <span className="text-sm font-medium text-green-300">
-                      {dashboardMetrics.propertiesChange}
+                      {metrics.propertiesChange}
                     </span>
                   </div>
                 </div>
@@ -198,13 +250,17 @@ const Main = () => {
                   <p className="text-sm font-medium text-teal-100 mb-1">
                     Active Leads
                   </p>
-                  <p className="text-3xl font-bold text-white">
-                    {dashboardMetrics.activeLeads.toLocaleString()}
-                  </p>
+                  {metricsLoading ? (
+                    <Skeleton className="h-8 w-20 bg-white/20 mb-2" />
+                  ) : (
+                    <p className="text-3xl font-bold text-white">
+                      {metrics.activeLeads.toLocaleString()}
+                    </p>
+                  )}
                   <div className="flex items-center mt-2">
                     <TrendingUp className="w-4 h-4 text-green-300 mr-1" />
                     <span className="text-sm font-medium text-green-300">
-                      {dashboardMetrics.leadsChange}
+                      {metrics.leadsChange}
                     </span>
                   </div>
                 </div>
@@ -220,15 +276,19 @@ const Main = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-orange-100 mb-1">
-                    Monthly Revenue
+                    Pipeline Value
                   </p>
-                  <p className="text-3xl font-bold text-white">
-                    ${dashboardMetrics.monthlyRevenue.toLocaleString()}
-                  </p>
+                  {metricsLoading ? (
+                    <Skeleton className="h-8 w-24 bg-white/20 mb-2" />
+                  ) : (
+                    <p className="text-3xl font-bold text-white">
+                      ${metrics.monthlyRevenue.toLocaleString()}
+                    </p>
+                  )}
                   <div className="flex items-center mt-2">
                     <TrendingUp className="w-4 h-4 text-green-300 mr-1" />
                     <span className="text-sm font-medium text-green-300">
-                      {dashboardMetrics.revenueChange}
+                      {metrics.revenueChange}
                     </span>
                   </div>
                 </div>
@@ -246,13 +306,17 @@ const Main = () => {
                   <p className="text-sm font-medium text-blue-100 mb-1">
                     Team Members
                   </p>
-                  <p className="text-3xl font-bold text-white">
-                    {dashboardMetrics.teamMembers}
-                  </p>
+                  {metricsLoading ? (
+                    <Skeleton className="h-8 w-16 bg-white/20 mb-2" />
+                  ) : (
+                    <p className="text-3xl font-bold text-white">
+                      {metrics.teamMembers}
+                    </p>
+                  )}
                   <div className="flex items-center mt-2">
                     <TrendingUp className="w-4 h-4 text-green-300 mr-1" />
                     <span className="text-sm font-medium text-green-300">
-                      {dashboardMetrics.teamChange}
+                      {metrics.teamChange}
                     </span>
                   </div>
                 </div>
@@ -264,48 +328,130 @@ const Main = () => {
           </Card>
         </motion.div>
 
-        {/* Promotional Banner */}
+        {/* Key Performance Indicators */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
           className="grid grid-cols-1 lg:grid-cols-3 gap-6"
         >
-          <Card className="lg:col-span-2 border-0 bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300">
+          <Card className="lg:col-span-2 border-0 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <h2 className="text-2xl font-bold text-white mb-4">
-                    Boost Your Real Estate Business Today! 🏠
+                    Pipeline Performance Overview
                   </h2>
-                  <p className="text-purple-100 mb-6 text-lg">
-                    Discover powerful tools and insights to accelerate your
-                    property sales and lead management.
-                  </p>
-                  <Button className="bg-white text-purple-600 hover:bg-purple-50 font-semibold px-6 py-3 rounded-lg shadow-lg">
-                    Explore Features
-                  </Button>
+                  <div className="grid grid-cols-2 gap-6 mb-6">
+                    <div>
+                      <p className="text-blue-100 text-sm mb-1">Active Deals</p>
+                      {pipelinePerformanceLoading ? (
+                        <Skeleton className="h-8 w-16 bg-white/20 mb-1" />
+                      ) : (
+                        <p className="text-3xl font-bold text-white">
+                          {pipelineMetrics.activeDeals}
+                        </p>
+                      )}
+                      <p className="text-blue-200 text-xs">
+                        {pipelineMetrics.activeDealsChange} from last month
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-blue-100 text-sm mb-1">
+                        Conversion Rate
+                      </p>
+                      {pipelinePerformanceLoading ? (
+                        <Skeleton className="h-8 w-20 bg-white/20 mb-1" />
+                      ) : (
+                        <p className="text-3xl font-bold text-white">
+                          {pipelineMetrics.conversionRate}%
+                        </p>
+                      )}
+                      <p className="text-blue-200 text-xs">
+                        {pipelineMetrics.conversionRateChange} improvement
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-blue-100 text-sm mb-1">
+                        Avg. Deal Size
+                      </p>
+                      {pipelinePerformanceLoading ? (
+                        <Skeleton className="h-8 w-24 bg-white/20 mb-1" />
+                      ) : (
+                        <p className="text-3xl font-bold text-white">
+                          ${pipelineMetrics.averageDealSize.toLocaleString()}
+                        </p>
+                      )}
+                      <p className="text-blue-200 text-xs">
+                        {pipelineMetrics.averageDealSizeChange} increase
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-blue-100 text-sm mb-1">Sales Cycle</p>
+                      {pipelinePerformanceLoading ? (
+                        <Skeleton className="h-8 w-20 bg-white/20 mb-1" />
+                      ) : (
+                        <p className="text-3xl font-bold text-white">
+                          {pipelineMetrics.salesCycle} days
+                        </p>
+                      )}
+                      <p className="text-blue-200 text-xs">
+                        {pipelineMetrics.salesCycleChange} faster
+                      </p>
+                    </div>
+                  </div>
+                  {/* <Button className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-6 py-3 rounded-lg shadow-lg">
+                    View Detailed Analytics
+                  </Button> */}
                 </div>
                 <div className="hidden lg:block ml-8">
                   <div className="w-32 h-32 bg-white/20 rounded-full flex items-center justify-center">
-                    <Home className="w-16 h-16 text-white" />
+                    <TrendingUp className="w-16 h-16 text-white" />
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg hover:shadow-xl transition-all duration-300">
+          <Card className="border-0 bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6 flex flex-col justify-center h-full">
               <div className="text-center">
                 <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <TrendingUp className="w-8 h-8 text-white" />
+                  <Users className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">
-                  Growth Rate
+                  Team Performance
                 </h3>
-                <p className="text-3xl font-bold text-white mb-2">+24.5%</p>
-                <p className="text-green-100 text-sm">This month</p>
+                {teamPerformanceLoading ? (
+                  <Skeleton className="h-8 w-20 bg-white/20 mx-auto mb-2" />
+                ) : (
+                  <p className="text-3xl font-bold text-white mb-2">
+                    {teamMetrics.goalAchievementRate}%
+                  </p>
+                )}
+                <p className="text-green-100 text-sm">Goal Achievement Rate</p>
+                <div className="mt-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-green-100">Top Performer</span>
+                    {teamPerformanceLoading ? (
+                      <Skeleton className="h-4 w-16 bg-white/20" />
+                    ) : (
+                      <span className="text-white font-medium">
+                        {teamMetrics.topPerformer.name}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-green-100">This Month</span>
+                    {teamPerformanceLoading ? (
+                      <Skeleton className="h-4 w-12 bg-white/20" />
+                    ) : (
+                      <span className="text-white font-medium">
+                        +{teamMetrics.thisMonthDeals} deals
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -337,42 +483,48 @@ const Main = () => {
                 <CardDescription>Common tasks and shortcuts</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button className="w-full justify-start bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 h-auto p-4">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center">
-                      <Home className="w-5 h-5 mr-3" />
-                      <div className="text-left">
-                        <div className="font-semibold">Add Property</div>
-                        <div className="text-sm text-blue-600">
-                          List a new property
+                <Link href="/dashboard/properties">
+                  <Button className="w-full justify-start bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 h-auto p-4">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center">
+                        <Home className="w-5 h-5 mr-3" />
+                        <div className="text-left">
+                          <div className="font-semibold">Add Property</div>
+                          <div className="text-sm text-blue-600">
+                            List a new property
+                          </div>
                         </div>
                       </div>
+                      <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center">
+                        <span className="text-blue-700 text-sm">→</span>
+                      </div>
                     </div>
-                    <div className="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center">
-                      <span className="text-blue-700 text-sm">→</span>
-                    </div>
-                  </div>
-                </Button>
+                  </Button>
+                </Link>
 
-                <Button className="w-full justify-start bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 h-auto p-4">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center">
-                      <div className="w-5 h-5 mr-3 flex items-center justify-center">
-                        <Users className="w-4 h-4" />
-                        <Plus className="w-3 h-3 -ml-2 -mt-1" />
-                      </div>
-                      <div className="text-left">
-                        <div className="font-semibold">Add Lead</div>
-                        <div className="text-sm text-green-600">
-                          Create new lead
+                <Link
+                  href={`/dashboard/leads?workspaceId=${currentWorkspace?.workspace.id}`}
+                >
+                  <Button className="w-full justify-start bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 h-auto p-4">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center">
+                        <div className="w-5 h-5 mr-3 flex items-center justify-center">
+                          <Users className="w-4 h-4" />
+                          <Plus className="w-3 h-3 -ml-2 -mt-1" />
+                        </div>
+                        <div className="text-left">
+                          <div className="font-semibold">Add Lead</div>
+                          <div className="text-sm text-green-600">
+                            Create new lead
+                          </div>
                         </div>
                       </div>
+                      <div className="w-6 h-6 bg-green-200 rounded-full flex items-center justify-center">
+                        <span className="text-green-700 text-sm">→</span>
+                      </div>
                     </div>
-                    <div className="w-6 h-6 bg-green-200 rounded-full flex items-center justify-center">
-                      <span className="text-green-700 text-sm">→</span>
-                    </div>
-                  </div>
-                </Button>
+                  </Button>
+                </Link>
 
                 <Button className="w-full justify-start bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 h-auto p-4">
                   <div className="flex items-center justify-between w-full">
@@ -459,34 +611,6 @@ const Main = () => {
                   </div>
                 </div>
               ))}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Workspace Status */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 1.0 }}
-        >
-          <Card className="border-0 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 backdrop-blur-sm shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Workspace Status
-                  </h3>
-                  <p className="text-gray-600">
-                    Your workspace is active and running smoothly
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-green-700">
-                    All Systems Operational
-                  </span>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </motion.div>

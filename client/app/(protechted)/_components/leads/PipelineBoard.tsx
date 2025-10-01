@@ -514,9 +514,23 @@ export const PipelineBoard: React.FC<{ workspaceId: string }> = ({
                 </SelectContent>
               </Select>
             )}
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
-            <span>Total Leads:</span>
-            <Badge variant="secondary">{filteredLeads.length}</Badge>
+          <div className="flex items-center space-x-4 text-sm text-gray-600">
+            <div className="flex items-center space-x-2">
+              <span>Total Leads:</span>
+              <Badge variant="secondary">{filteredLeads.length}</Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span>Pipeline Value:</span>
+              <Badge
+                variant="outline"
+                className="text-green-700 border-green-200 bg-green-50"
+              >
+                $
+                {filteredLeads
+                  .reduce((total, lead) => total + (lead.budget || 0), 0)
+                  .toLocaleString()}
+              </Badge>
+            </div>
           </div>
         </div>
       </div>

@@ -162,6 +162,17 @@ export const useCreateLead = () => {
       queryClient.invalidateQueries({
         queryKey: ["pipeline-stages", workspaceId],
       });
+      // Invalidate dashboard metrics
+      queryClient.invalidateQueries({
+        queryKey: ["dashboard-metrics", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["team-performance", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["pipeline-performance", workspaceId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["lead-funnel", workspaceId] });
 
       // Force refetch to ensure immediate update
       queryClient.refetchQueries({ queryKey: ["leads", workspaceId] });
@@ -207,6 +218,17 @@ export const useUpdateLead = () => {
       queryClient.invalidateQueries({
         queryKey: ["pipeline-stages", workspaceId],
       });
+      // Invalidate dashboard metrics
+      queryClient.invalidateQueries({
+        queryKey: ["dashboard-metrics", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["team-performance", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["pipeline-performance", workspaceId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["lead-funnel", workspaceId] });
     },
   });
 };
@@ -248,6 +270,17 @@ export const useUpdateLeadStage = () => {
       queryClient.invalidateQueries({
         queryKey: ["pipeline-stages", workspaceId],
       });
+      // Invalidate dashboard metrics
+      queryClient.invalidateQueries({
+        queryKey: ["dashboard-metrics", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["team-performance", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["pipeline-performance", workspaceId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["lead-funnel", workspaceId] });
     },
   });
 };
@@ -277,6 +310,17 @@ export const useUpdateLeadPosition = () => {
       queryClient.invalidateQueries({
         queryKey: ["pipeline-stages", workspaceId],
       });
+      // Invalidate dashboard metrics
+      queryClient.invalidateQueries({
+        queryKey: ["dashboard-metrics", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["team-performance", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["pipeline-performance", workspaceId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["lead-funnel", workspaceId] });
     },
   });
 };
@@ -299,6 +343,17 @@ export const useDeleteLead = () => {
       queryClient.invalidateQueries({
         queryKey: ["pipeline-stages", workspaceId],
       });
+      // Invalidate dashboard metrics
+      queryClient.invalidateQueries({
+        queryKey: ["dashboard-metrics", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["team-performance", workspaceId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["pipeline-performance", workspaceId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["lead-funnel", workspaceId] });
     },
   });
 };

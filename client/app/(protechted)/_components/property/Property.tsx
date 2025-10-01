@@ -54,6 +54,9 @@ const Property = () => {
       queryClient.invalidateQueries({
         queryKey: ["properties", currentWorkspace?.workspace.id],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["monthly-sales", currentWorkspace?.workspace.id],
+      });
     },
     onError: (error) => {
       console.error("❌ Property creation failed:", error);
@@ -72,6 +75,9 @@ const Property = () => {
       // Invalidate and refetch properties to show the updated one
       queryClient.invalidateQueries({
         queryKey: ["properties", currentWorkspace?.workspace.id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["monthly-sales", currentWorkspace?.workspace.id],
       });
     },
     onError: (error) => {
