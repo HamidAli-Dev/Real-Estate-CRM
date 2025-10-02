@@ -28,6 +28,7 @@ model Workspace {
   PipelineStage        PipelineStage[]
   invitations          UserInvitation[]
   notificationSettings WorkspaceNotificationSettings?
+  chatMessages         ChatMessage[]
 }
 
 model User {
@@ -46,6 +47,10 @@ model User {
   invitations             UserInvitation[]             @relation("InvitedBy")
   triggeredNotifications  Notification[]               @relation("NotificationTriggeredBy")
   notificationPreferences UserNotificationPreferences?
+
+  // Chat relations
+  sentMessages     ChatMessage[]
+  receivedMessages ChatMessage[] @relation("ReceivedMessages")
 }
 
 model PipelineStage {
@@ -503,4 +508,44 @@ model RefreshToken {
   userId    String
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model ChatMessage {
+  id          String        @id @default(uuid())
+  content     String
+  messageType MessageType   @default(TEXT)
+  sender      User          @relation(fields: [senderId], references: [id])
+  senderId    String
+  receiver    User?         @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  receiverId  String?
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id])
+  workspaceId String
+  status      MessageStatus @default(SENT)
+  readAt      DateTime?
+  attachments Json?
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  isDeleted   Boolean       @default(false)
+  deletedAt   DateTime?
+
+  @@index([workspaceId, createdAt])
+  @@index([senderId, receiverId])
+  @@index([workspaceId, senderId, receiverId])
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  PROPERTY_SHARE
+  SYSTEM
+}
+
+enum MessageStatus {
+  SENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
 }

@@ -8,7 +8,22 @@ export interface WorkspaceUser {
     name: string;
     email: string;
   };
-  role: string;
+  role: {
+    id: string;
+    name: string;
+    isSystem: boolean;
+    workspaceId: string;
+    createdAt: string;
+    updatedAt: string;
+    rolePermissions: Array<{
+      id: string;
+      permission: {
+        id: string;
+        name: string;
+        group?: string;
+      };
+    }>;
+  };
   permissions: Array<{
     id: string;
     permission: string;

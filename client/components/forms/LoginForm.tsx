@@ -161,6 +161,7 @@ const LoginForm = () => {
                 {isPending && <Loader className="animate-spin" />}
                 Login
               </Button>
+              <p>Invited user default password: 123456</p>
             </form>
 
             <div className="mt-3">

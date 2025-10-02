@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Settings,
   ChevronRight,
+  MessageSquareText,
 } from "lucide-react";
 
 import {
@@ -93,6 +94,16 @@ const DashboardSidebar = () => {
       group: "main",
     },
     {
+      title: "Chat",
+      href: `/dashboard/chat${
+        workspaceId ? `?workspaceId=${workspaceId}` : ""
+      }`,
+      path: "/dashboard/chat",
+      icon: MessageSquareText,
+      description: "Chat with your team",
+      group: "main",
+    },
+    {
       title: "Analytics",
       href: `/dashboard/analytics${
         workspaceId ? `?workspaceId=${workspaceId}` : ""
@@ -129,7 +140,7 @@ const DashboardSidebar = () => {
   ];
 
   // Helper function to check permissions
-  const hasPermission = (permission: string | null) => {
+  const hasPermission = (permission: string | null | undefined) => {
     if (!permission) return true; // Always show items without permission requirements
 
     switch (permission) {

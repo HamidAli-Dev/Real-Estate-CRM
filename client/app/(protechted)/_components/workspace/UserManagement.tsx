@@ -99,7 +99,7 @@ const UserManagement = () => {
     useState<getWorkspaceRolesQueryResponseType | null>(null);
   const [creatingRole, setCreatingRole] = useState(false);
   const { currentWorkspace } = useWorkspaceContext();
-  const { can } = usePermission();
+  const { can, isOwner } = usePermission();
   const queryClient = useQueryClient();
 
   const editForm = useForm<z.infer<typeof updateUserRoleSchema>>({
@@ -142,7 +142,9 @@ const UserManagement = () => {
   // Extract data
   const workspaceUsers = usersData || [];
 
-  const roles = (rolesData || []).filter(filterOutOwnerRole);
+  const roles = rolesData || [];
+
+  console.log("💚Roles:", roles);
 
   // Clear queries when workspace changes to prevent cross-workspace data
   useEffect(() => {
@@ -639,64 +641,63 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        {can.editUserRoles() &&
-                          !role.isSystem &&
-                          role.name === "Owner" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditRole(role)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          )}
-                        {can.removeUsers() &&
-                          !role.isSystem &&
-                          role.name === "Owner" && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700"
+                        {isOwner() && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditRole(role)}
+                            disabled={role.name === "Owner"}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {isOwner() && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700"
+                                disabled={
+                                  isDeletingRole || role.name === "Owner"
+                                }
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="flex items-center space-x-2">
+                                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                                  <span>Delete Role</span>
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete the role
+                                  {`"${role.name}"`}? This action cannot be
+                                  undone and will affect all users assigned to
+                                  this role.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-red-600 hover:bg-red-700"
+                                  onClick={() => handleDeleteRole(role.id)}
                                   disabled={isDeletingRole}
                                 >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle className="flex items-center space-x-2">
-                                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                                    <span>Delete Role</span>
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete the role
-                                    {`"${role.name}"`}? This action cannot be
-                                    undone and will affect all users assigned to
-                                    this role.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    className="bg-red-600 hover:bg-red-700"
-                                    onClick={() => handleDeleteRole(role.id)}
-                                    disabled={isDeletingRole}
-                                  >
-                                    {isDeletingRole ? (
-                                      <>
-                                        <Loader className="w-4 h-4 mr-2 animate-spin" />
-                                        Deleting...
-                                      </>
-                                    ) : (
-                                      "Delete Role"
-                                    )}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
+                                  {isDeletingRole ? (
+                                    <>
+                                      <Loader className="w-4 h-4 mr-2 animate-spin" />
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    "Delete Role"
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                         {role.isSystem && (
                           <span className="text-xs text-gray-500">
                             Protected
