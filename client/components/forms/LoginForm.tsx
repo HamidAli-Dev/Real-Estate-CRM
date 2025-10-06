@@ -1,6 +1,6 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
@@ -8,9 +8,23 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader } from "lucide-react";
+import { Loader, Eye, EyeOff } from "lucide-react";
+import { CustomError } from "@/types/custom-error.type";
 
 import { Button } from "@/components/ui/button";
+
+interface LoginError extends CustomError {
+  response?: {
+    data?: {
+      message?: string;
+      errorCode?: string;
+    };
+  };
+  data?: {
+    message?: string;
+    errorCode?: string;
+  };
+}
 import {
   Form,
   FormControl,
@@ -38,6 +52,7 @@ const LoginForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const [showPassword, setShowPassword] = useState(false);
 
   const { mutate, isPending } = useMutation({
     mutationFn: loginMutationFn,
@@ -80,9 +95,23 @@ const LoginForm = () => {
           router.push("/dashboard");
         }
       },
-      onError: (err) => {
-        toast.error("Error", {
-          description: err?.message || "Something went wrong",
+      onError: (err: LoginError) => {
+        // Extract the actual error message from the server response
+        let errorMessage = "Something went wrong";
+
+        if (err?.response?.data?.message) {
+          // Direct server response message
+          errorMessage = err.response.data.message;
+        } else if (err?.data?.message) {
+          // Error data message
+          errorMessage = err.data.message;
+        } else if (err?.message) {
+          // Generic error message
+          errorMessage = err.message;
+        }
+
+        toast.error("Login Failed", {
+          description: errorMessage,
         });
       },
     });
@@ -141,12 +170,27 @@ const LoginForm = () => {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
-                        {...field}
-                        placeholder="*********"
-                        disabled={isPending}
-                      />
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          {...field}
+                          placeholder="*********"
+                          disabled={isPending}
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                          disabled={isPending}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

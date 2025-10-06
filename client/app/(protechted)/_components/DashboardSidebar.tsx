@@ -4,12 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
-  ClipboardCheck,
   House,
   LayoutDashboard,
   User,
   UsersRound,
-  TrendingUp,
   Settings,
   ChevronRight,
   MessageSquareText,
@@ -82,17 +80,17 @@ const DashboardSidebar = () => {
       permission: "viewLeads",
       group: "main",
     },
-    {
-      title: "Deals",
-      href: `/dashboard/deals${
-        workspaceId ? `?workspaceId=${workspaceId}` : ""
-      }`,
-      path: "/dashboard/deals",
-      icon: ClipboardCheck,
-      description: "Sales pipeline",
-      permission: "viewDeals",
-      group: "main",
-    },
+    // {
+    //   title: "Deals",
+    //   href: `/dashboard/deals${
+    //     workspaceId ? `?workspaceId=${workspaceId}` : ""
+    //   }`,
+    //   path: "/dashboard/deals",
+    //   icon: ClipboardCheck,
+    //   description: "Sales pipeline",
+    //   permission: "viewDeals",
+    //   group: "main",
+    // },
     {
       title: "Chat",
       href: `/dashboard/chat${
@@ -103,17 +101,17 @@ const DashboardSidebar = () => {
       description: "Chat with your team",
       group: "main",
     },
-    {
-      title: "Analytics",
-      href: `/dashboard/analytics${
-        workspaceId ? `?workspaceId=${workspaceId}` : ""
-      }`,
-      path: "/dashboard/analytics",
-      icon: TrendingUp,
-      description: "Performance metrics",
-      permission: "viewAnalytics",
-      group: "main",
-    },
+    // {
+    //   title: "Analytics",
+    //   href: `/dashboard/analytics${
+    //     workspaceId ? `?workspaceId=${workspaceId}` : ""
+    //   }`,
+    //   path: "/dashboard/analytics",
+    //   icon: TrendingUp,
+    //   description: "Performance metrics",
+    //   permission: "viewAnalytics",
+    //   group: "main",
+    // },
     // Management Group
     {
       title: "User Management",

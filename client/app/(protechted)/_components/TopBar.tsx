@@ -6,8 +6,6 @@ import {
   User,
   LogOut,
   HelpCircle,
-  Sun,
-  Moon,
   ChevronDown,
   MessageSquare,
 } from "lucide-react";
@@ -30,6 +28,7 @@ import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import NotificationDropdown from "@/app/(protechted)/_components/notifications/NotificationDropdown";
 import { useSocketContext } from "@/context/socket-provider";
 import { usePermission } from "@/hooks/usePermission";
+import { useWorkspaceContext } from "@/context/workspace-provider";
 
 const TopBar = () => {
   const [isOpenDropdown, setIsOpenDropdown] = useState(false);
@@ -40,6 +39,7 @@ const TopBar = () => {
   const { isConnected } = useSocketContext();
   const { open } = useSidebar();
   const { isOwner } = usePermission();
+  const { currentWorkspace } = useWorkspaceContext();
 
   const handleLogout = async () => {
     await logout();
@@ -51,10 +51,10 @@ const TopBar = () => {
     console.log("Searching for:", searchQuery);
   };
 
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    // TODO: Implement theme switching
-  };
+  // const toggleTheme = () => {
+  //   setIsDarkMode(!isDarkMode);
+  //   // TODO: Implement theme switching
+  // };
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
@@ -82,10 +82,12 @@ const TopBar = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">
-                  Good Morning, {user?.user.name?.split(" ")[0]}! 👋
+                  {currentWorkspace?.workspace.name || "Welcome"}, 👋
                 </h1>
                 <p className="text-sm text-gray-500 font-medium">
-                  Welcome back to your dashboard
+                  {currentWorkspace?.workspace.name
+                    ? `Managing ${currentWorkspace.workspace.name}`
+                    : "Welcome back to your dashboard"}
                 </p>
               </div>
             </div>
@@ -108,7 +110,7 @@ const TopBar = () => {
           {/* Right Section - Actions & User */}
           <div className="flex items-center space-x-2">
             {/* Theme Toggle */}
-            <Button
+            {/* <Button
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
@@ -119,7 +121,7 @@ const TopBar = () => {
               ) : (
                 <Moon className="w-5 h-5" />
               )}
-            </Button>
+            </Button> */}
 
             {/* Notifications */}
             <NotificationDropdown className="p-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-200 relative" />
