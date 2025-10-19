@@ -33,7 +33,6 @@ import { useWorkspaceContext } from "@/context/workspace-provider";
 const TopBar = () => {
   const [isOpenDropdown, setIsOpenDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const { user, logout } = useAuthContext();
   const { isConnected } = useSocketContext();
@@ -50,11 +49,6 @@ const TopBar = () => {
     // TODO: Implement search functionality
     console.log("Searching for:", searchQuery);
   };
-
-  // const toggleTheme = () => {
-  //   setIsDarkMode(!isDarkMode);
-  //   // TODO: Implement theme switching
-  // };
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
