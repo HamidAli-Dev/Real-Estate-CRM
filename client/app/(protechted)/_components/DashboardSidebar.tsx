@@ -91,16 +91,16 @@ const DashboardSidebar = () => {
     //   permission: "viewDeals",
     //   group: "main",
     // },
-    {
-      title: "Chat",
-      href: `/dashboard/chat${
-        workspaceId ? `?workspaceId=${workspaceId}` : ""
-      }`,
-      path: "/dashboard/chat",
-      icon: MessageSquareText,
-      description: "Chat with your team",
-      group: "main",
-    },
+    // {
+    //   title: "Chat",
+    //   href: `/dashboard/chat${
+    //     workspaceId ? `?workspaceId=${workspaceId}` : ""
+    //   }`,
+    //   path: "/dashboard/chat",
+    //   icon: MessageSquareText,
+    //   description: "Chat with your team",
+    //   group: "main",
+    // },
     // {
     //   title: "Analytics",
     //   href: `/dashboard/analytics${
